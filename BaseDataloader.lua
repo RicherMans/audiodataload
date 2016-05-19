@@ -22,7 +22,7 @@ function BaseDataloader:getSample(ids,start,stop,...)
 end
 
 
-function BaseDataloader:getSamples(batchsize,start,stop, ... )
+function BaseDataloader:subSamples(batchsize,start,stop, ... )
     self._sampleid = self._sampleid or torch.LongTensor()
     self._sampleid:resize(batchsize):randperm(batchsize)
     return self:getSample(self._sampleid,start,stop,...)
@@ -34,7 +34,7 @@ function BaseDataloader:getSlice(start,stop, ... )
     return self:getUtterance(self._utts,start,stop,...)
 end
 
-function BaseDataloader:sampleiterator(batchsize,epochsize,...)
+function BaseDataloader:sampleiterator(batchsize,epochsize,randomize,...)
     batchsize = batchsize or 16
     local dots = {...}
     local size = self:size()
@@ -42,7 +42,10 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     epochsize = epochsize > 0 and epochsize or self:size()
     local numsamples = 0
 
+    local min = math.min
+
     local inputs, targets
+    randomize = randomize or (randomize == nil or randomize )
 
     -- build iterator
     return function()
@@ -50,16 +53,13 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
             return
         end
 
-        local bs = math.min(numsamples+batchsize, epochsize) - numsamples
-
+        local bs = min(numsamples+batchsize, epochsize) - numsamples
         -- inputs and targets
-        local batch = {self:getSamples(bs, inputs, targets, unpack(dots))}
+        local batch = {self:subSamples(bs, inputs, targets, unpack(dots))}
         -- allows reuse of inputs and targets buffers for next iteration
         inputs, targets = batch[1], batch[2]
 
         numsamples = numsamples + bs
-
-        self:collectgarbage()
 
         return numsamples, unpack(batch)
     end

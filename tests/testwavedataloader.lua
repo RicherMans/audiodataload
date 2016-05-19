@@ -9,14 +9,18 @@ local modeltester = torch.TestSuite()
 -- Inits the dataloaders
 local audioload = paths.dofile('../init.lua')
 
-print(audioload)
-
 local tester = torch.Tester()
 
 
 function modeltester:init()
-    local filepath = ""
-    local dataloader = audioload.WaveDataloader()
+    local filepath = "train.lst"
+    local dataloader = audioload.WaveDataloader(filepath,100)
+
+    local it = dataloader:sampleiterator()
+    print(dataloader:size())
+    for i,k,v,d in it do
+        -- print(i,k,v,d)
+    end
 end
 
 

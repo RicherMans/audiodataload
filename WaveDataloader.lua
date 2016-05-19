@@ -20,18 +20,58 @@ initcheck = argcheck{
         name='framesize',
         type='number',
         help="Size for one frame",
+    },
+    {
+        name='shift',
+        type='number',
+        help="Frameshift, defaults to to same length as framesize (thus not being used)",
+        -- Set default of being the framesize
+        defaulta='framesize'
     }
 }
 
-function WaveDataloader:__init(...)
-    local path,framesize = initcheck(...)
-    print(path,framesize)
-
-    -- self:_prepare(args.path,args.framesize)
+local function calcnumframes(samplessize,framesize,shift)
+    return math.floor((samplessize-framesize)/shift + 1)
+end
+local function readfilelabel(labels,num)
+    return ffi.string(torch.data(labels[num]))
 end
 
-function WaveDataloader:_prepare(filename,framesize)
-    assert(filename ~= '',"Filename is empty! ")
+function WaveDataloader:__init(...)
+    local this,path,framesize,shift = initcheck(...)
+
+
+    local filelabels,targets,headerlengths, overall_samples = self:_readfilelengths(path)
+
+    -- Framesize is the actual dimension of a single sample
+    self._dim = framesize
+    self.shift = shift
+    self._nsamples = overall_samples
+
+    self.sampletofeatid, self.sampletoclassrange = self:_headerstosamples(headerlengths,self:size())
+
+end
+
+--
+function WaveDataloader:_headerstosamples(samplelengths,overall_samples)
+    local sampletofeatid = torch.LongTensor(overall_samples)
+    local sampletoclassrange = torch.LongTensor(overall_samples)
+    local runningindex = 0
+    local numsamples = 0
+    for i=1,samplelengths:size(1) do
+        numsamples  = samplelengths[i]
+        numsamples = calcnumframes(numsamples,self:dim(),self.shift)
+        -- -- Fill in the target for each sample
+        sampletofeatid[{{runningindex + 1, runningindex + numsamples}}]:fill(i)
+        sampletoclassrange[{{runningindex + 1, runningindex + numsamples}}]:range(1,numsamples)
+        runningindex = runningindex + numsamples
+    end
+
+    return sampletofeatid,sampletoclassrange
+end
+
+function WaveDataloader:_readfilelengths(filename)
+    assert(paths.filep(filename) ~= '',"Filename ".. filename .. "does not exist")
     -- The cache for the filepaths
     local filelabels = torch.CharTensor()
     local targets = torch.IntTensor()
@@ -54,8 +94,9 @@ function WaveDataloader:_prepare(filename,framesize)
 
     local linecount = 0
     local audiotensor = nil
-    local audiosamples = nil
+    local audiosamples = 0
     local floor = math.floor
+    local max = math.max
 
     for line in io.lines(filename) do
         local l = line:split(' ')
@@ -66,9 +107,8 @@ function WaveDataloader:_prepare(filename,framesize)
             count = count + 1
         end
         audiotensor = audio.load(l[1])
-        -- The number of audiosamples for the current framesize
-        -- If we have zero length, we just pad, but assum ehaving a single utterance
-        audiosamples = max(1,floor(audiotensor:size(1)/framesize))
+
+        audiosamples = audiotensor:size(1)
         -- Add to the samples, but do not use the last audiochunk ( since it is not the same size as the others)
         overall_samples = overall_samples + audiosamples
 
@@ -84,6 +124,12 @@ function WaveDataloader:_prepare(filename,framesize)
 end
 
 function WaveDataloader:getSample(ids,start,stop)
+    return start
+end
+
+-- randimizes the input sequence
+function WaveDataloader:random()
+    
 end
 
 -- Returns the size of the dataset
