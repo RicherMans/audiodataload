@@ -39,6 +39,11 @@ function BaseDataloader:getSlice(start,stop, ... )
     return self:getUtterance(self._utts,start,stop,...)
 end
 
+-- Loads a single audio file into the memory. Used to overload by other classes and should be called during getSample()
+function BaseDataloader:loadAudioSample(audiofilepath,start,stop,...)
+    error "Not Implemented"
+end
+
 function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     batchsize = batchsize or 16
     local dots = {...}

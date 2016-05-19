@@ -2,7 +2,6 @@ local adl = require '_base'
 local WaveDataloader = torch.class('adl.WaveDataloader', 'adl.BaseDataloader', adl)
 
 local ffi = require 'ffi'
-local argcheck = require 'argcheck'
 require 'audio'
 
 
@@ -64,6 +63,7 @@ function WaveDataloader:__init(...)
     self.filelabels = filelabels
     self.targets = targets
     self._nsamples = overall_samples
+    self._numutterances = filelabels:size(1)
 
     self.sampletofeatid, self.sampletoclassrange = self:_headerstosamples(headerlengths,self:size())
 
@@ -140,6 +140,10 @@ function WaveDataloader:_readfilelengths(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
+function WaveDataloader:loadAudio(audiofilepath,start,stop)
+    return audio.load(audiofilepath):sub(start,stop)
+end
+
 function WaveDataloader:getSample(ids)
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,ids)
@@ -165,13 +169,13 @@ function WaveDataloader:getSample(ids)
     end
 
     local wavesample = nil
-    local batchdimlength = self._input:size(batchdim)
+    -- local batchdimlength = self._input:size(batchdim)
     local framestart = 1
     -- Get the current offset for the data
     for i=1,labels:size(1) do
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
-        wavesample = audio.load(readfilelabel(labels,i))
-        self._input:narrow(batchdim,i,1):copy(wavesample:sub(framestart,framestart+framewindow - 1))
+        wavesample = self:loadAudio(readfilelabel(labels,i),framestart,framestart+framewindow - 1)
+        self._input:narrow(batchdim,i,1):copy(wavesample)
     end
     return self._input,self._target
 end
@@ -186,6 +190,11 @@ end
 -- Returns the size of the dataset
 function WaveDataloader:size()
     return self._nsamples
+end
+
+-- Returns the size of the utterances
+function WaveDataloader:usize()
+    return self._numutterances
 end
 
 -- Returns the data dimensions

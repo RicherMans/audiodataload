@@ -16,7 +16,7 @@ function modeltester:init()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader(filepath,100)
 
-    local it = dataloader:sampleiterator(256)
+    local it = dataloader:sampleiterator()
     dataloader:random()
     local timer = torch.Timer()
     for i,k,v,d in it do
