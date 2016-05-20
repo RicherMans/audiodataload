@@ -33,10 +33,8 @@ function BaseDataloader:subSamples(start,stop, ... )
     return self:getSample(self._sampleid,...)
 end
 
-function BaseDataloader:getSlice(start,stop, ... )
-    self._utts = self._utts or torch.LongTensor()
-    self._utts:range(start,stop)
-    return self:getUtterance(self._utts,start,stop,...)
+function BaseDataloader:getUtterances(uttid, ... )
+    return self:getUtterance(uttid,...)
 end
 
 -- Loads a single audio file into the memory. Used to overload by other classes and should be called during getSample()
@@ -69,11 +67,11 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
         -- inputs, targets = batch[1], batch[2]
 
         numsamples = numsamples + bs
-
         return numsamples,epochsize, unpack(batch)
     end
 end
 
+-- Iterator which returns whole utterances batched
 function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     batchsize = batchsize or 16
     local dots = {...}
@@ -83,18 +81,18 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
     local min = math.min
 
-    local inputs, targets
+    local inputs, targets , bs, stop
     -- build iterator
     return function()
         if numsamples >= epochsize then
             return
         end
 
-        local bs = min(numsamples+batchsize, epochsize) - numsamples
+        bs = min(numsamples+batchsize, epochsize) - numsamples
 
-        local stop = numsamples + bs
+        stop = numsamples + bs
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getSlice(numsamples, stop, unpack(dots))}
+        local batch = {self:getUtterances(numsamples, stop, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
 

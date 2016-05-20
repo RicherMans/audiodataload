@@ -1,5 +1,6 @@
 require 'torch'
 require 'nn'
+require 'xlua'
 
 -- Add to cpath
 local info = debug.getinfo(1,'S')
@@ -18,14 +19,41 @@ function modeltester:init()
 
     local it = dataloader:sampleiterator()
     dataloader:random()
-    local timer = torch.Timer()
-    for i,k,v,d in it do
-        print(timer:time().real)
-        timer:reset()
+    -- for i,k,v,d in it do
+    --     xlua.progress(i,k)
+    --     -- print(i,k,v,d)
+    -- end
+end
+
+function modeltester:testSeqlenSample()
+    local filepath = "train.lst"
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=100,padding='right'}
+
+    local it = dataloader:sampleiterator()
+    for i,k,v,t in it do
+        tester:assert(i ~= nil)
+        tester:assert(k ~= nil)
+        tester:assert(v ~= nil)
+        tester:assert(t ~= nil)
+        -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
 end
 
+function modeltester:testUtterance()
+    local filepath = "train.lst"
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=100,padding='right'}
+
+    local it = dataloader:uttiterator()
+    for i,k,v,t in it do
+        tester:assert(i ~= nil)
+        tester:assert(k ~= nil)
+        tester:assert(v ~= nil)
+        tester:assert(t ~= nil)
+        -- xlua.progress(i,k)
+        -- print(i,k,v,d)
+    end
+end
 
 tester:add(modeltester)
 tester:run()

@@ -4,11 +4,15 @@ require 'torchx'
 require 'string'
 require 'os'
 require 'sys'
-require 'ffi'
+ffi = require 'ffi'
 argcheck = require 'argcheck'
 
 -- make unpack visible in global
 unpack = unpack or table.unpack
+
+floor = math.floor
+
+
 
 local adl = require '_base'
 

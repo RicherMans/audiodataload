@@ -1,7 +1,6 @@
 local adl = require '_base'
 local WaveDataloader = torch.class('adl.WaveDataloader', 'adl.BaseDataloader', adl)
 
-local ffi = require 'ffi'
 require 'audio'
 
 
@@ -35,8 +34,9 @@ local initcheck = argcheck{
     },
     {
         name='padding',
-        help="Left or right padding for the given utterances, if we need any",
+        help="Left or right padding for the given utterances, left meaning we append zeros at the beginning of a sequence, right means we append at the end",
         type='string',
+        default = 'left',
         check =function (padtype)
             if padtype == 'left' or padtype == 'right' then return true else return false end
         end
@@ -47,7 +47,11 @@ local function calcnumframes(samplessize,framesize,shift)
     return math.floor((samplessize-framesize)/shift + 1)
 end
 local function readfilelabel(labels,num)
-    return ffi.string(torch.data(labels[num]))
+    if num == nil then
+        return ffi.string(torch.data(labels))
+    else
+        return ffi.string(torch.data(labels[num]))
+    end
 end
 
 function WaveDataloader:__init(...)
@@ -57,6 +61,7 @@ function WaveDataloader:__init(...)
     self._dim = framesize
     self.shift = shift
     self.seqlen = seqlen
+    self.padding = padding
 
     local filelabels,targets,headerlengths, overall_samples = self:_readfilelengths(path)
 
@@ -140,9 +145,58 @@ function WaveDataloader:_readfilelengths(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
-function WaveDataloader:loadAudio(audiofilepath,start,stop)
-    return audio.load(audiofilepath):sub(start,stop)
+-- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zero padding is applied on either the left or the right side of the tensor, making it possible to use MaskZero()
+function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
+    self._audioloaded = torch.Tensor() or self._audioloaded
+    self._audioloaded = audio.load(audiofilepath)
+    -- This happens if the seqlength is choosen to be very big, thus we need to pad the input with zeros
+    if stop - start > self._audioloaded:size(1) then
+        local audiosize = self._audioloaded:size(1)
+        -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
+        audiosize = floor(audiosize/(self:dim())) * self:dim()
+        -- Try to fit only the seqlen utterances in a whole in
+        audiosize = floor(audiosize/self.seqlen) * self.seqlen
+        local bufsize = stop-start + 1
+        self._buf = self._buf or torch.Tensor()
+        self._buf:resize(bufsize):zero()
+        if self.padding == 'left' then
+            self._buf:sub(stop-audiosize+1,bufsize):copy(self._audioloaded:sub(1,audiosize))
+        else
+            self._buf:sub(1,audiosize):copy(self._audioloaded:sub(1,audiosize))
+        end
+        return self._buf
+    else
+        return self._audioloaded:sub(start,stop)
+    end
+
 end
+
+function WaveDataloader:loadAudioUtterance(audiofilepath,...)
+    self._audioloaded = torch.Tensor() or self._audioloaded
+    self._audioloaded = audio.load(audiofilepath)
+    local origaudiosize = self._audioloaded:size(1)
+    -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
+    local modaudiosize = floor(origaudiosize/self:dim()) * self:dim()
+    -- Try to fit only the seqlen utterances in a whole in
+    modaudiosize = floor(modaudiosize/self.seqlen) * self.seqlen
+    -- We trim the output if seqlen is small
+    local targetsize = self:dim()*self.seqlen
+    self._buf = self._buf or torch.Tensor()
+    self._buf:resize(targetsize):zero()
+    if targetsize > modaudiosize then
+        if self.padding == 'left' then
+            self._buf:sub(targetsize-modaudiosize + 1,targetsize):copy(self._audioloaded:sub(1,modaudiosize))
+        else
+            self._buf:sub(1,modaudiosize):copy(self._audioloaded:sub(1,modaudiosize))
+        end
+    else
+        
+    end
+    return self._buf
+end
+
+
+-- Iterator callback functions
 
 function WaveDataloader:getSample(ids)
     self._featids = self._featids or torch.LongTensor()
@@ -155,29 +209,63 @@ function WaveDataloader:getSample(ids)
     self._input = self._input or torch.Tensor()
     self._target = self._target or torch.Tensor()
 
-    self._input:resize(labels:size(1),self:dim())
-    self._target:resize(labels:size(1))
+    self._input = self._input:resize(labels:size(1),self:dim())
+    self._target = self._target:resize(labels:size(1))
 
-    self._target:copy(self.targets:index(1,self._featids))
 
     if self.seqlen > 1 then
         -- Adding another dimensions at the front
-        self._input = self._input:resize(self.seqlen,-1)
+        self._input = self._input:resize(self.seqlen,labels:size(1),self:dim())
         batchdim = 2
         -- We extract on top of the frame also the seqlenth
         framewindow = framewindow * self.seqlen
     end
+    -- The targets are unaffected by any seqlen
+    self._target:copy(self.targets:index(1,self._featids))
 
     local wavesample = nil
-    -- local batchdimlength = self._input:size(batchdim)
+    -- Starting fram
     local framestart = 1
+    -- ending frame, maximum is the full seqence
+    local frameend = -1
     -- Get the current offset for the data
     for i=1,labels:size(1) do
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
-        wavesample = self:loadAudio(readfilelabel(labels,i),framestart,framestart+framewindow - 1)
+        frameend = framestart+framewindow - 1
+        wavesample = self:loadAudioSample(readfilelabel(labels,i),framestart,frameend)
         self._input:narrow(batchdim,i,1):copy(wavesample)
     end
     return self._input,self._target
+end
+
+-- returns a whole utterance, either chunked into batches X dim or if seqlen is specified the data goes into the seqlen , batchdim will be left as one
+function WaveDataloader:getUtterance(uttid)
+    -- Labels is single dimensional
+    local labels = self.filelabels[uttid]
+
+    local batchdim = 1
+
+    self._input = self._input or torch.Tensor()
+    self._target = self._target or torch.Tensor()
+
+    self._target = self._target:resize(1):copy(self.targets[uttid])
+
+    if self.seqlen > 1 then
+        -- Adding another dimensions at the front, being SEQLEN X 1 X DIM
+        self._input = self._input:resize(self.seqlen,1,self:dim())
+        batchdim = 2
+    end
+    local framestart = 1
+    -- ending frame, maximum is the full seqence
+    local frameend = -1
+    -- Get the current offset for the data
+    local wavesample = self:loadAudioUtterance(readfilelabel(labels))
+    print(self._input:size(batchdim))
+    print(self._input:size())
+    print(wavesample:size())
+    self._input:narrow(batchdim,1,1):copy(wavesample)
+
+    return self._input, self._target
 end
 
 -- randomizes the input sequence
