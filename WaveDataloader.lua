@@ -256,22 +256,26 @@ function WaveDataloader:getUtterance(uttids)
 
     self._target = self._target:resize(numbatches):copy(self.targets:index(1,uttids))
 
+    local filelabels = {}
+
     if self.seqlen > 1 then
         -- Adding another dimensions at the front, being SEQLEN X 1 X DIM
         self._input = self._input:resize(self.seqlen,numbatches,self:dim())
         local batchdim = 2
         for i=1,numbatches do
             -- Get the current offset for the data
-            local wavesample = self:loadAudioUtterance(readfilelabel(labels,i))
+            filelabels[#filelabels + 1] = readfilelabel(labels,i)
+            local wavesample = self:loadAudioUtterance(filelabels[#filelabels])
             self._input:narrow(batchdim,i,1):copy(wavesample)
         end
     -- In case we have only one batch, we return the whole tensor as in size NFRAMES (BATCHDIM) X Targetdim
     else
-        local wavesample = self:loadAudioUtterance(readfilelabel(labels,1),true)
+        filelabels[#filelabels + 1] = readfilelabel(labels,1)
+        local wavesample = self:loadAudioUtterance(filelabels[#filelabels],true)
         self._input:resize(wavesample:size(1)/self:dim(),self:dim()):copy(wavesample)
     end
 
-    return self._input, self._target
+    return self._input, self._target, filelabels
 end
 
 -- randomizes the input sequence

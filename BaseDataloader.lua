@@ -26,12 +26,22 @@ function BaseDataloader:getSample(ids,start,stop,...)
     error "Not Implemented"
 end
 
+-- These two methods should be called within the getSample/getutterance methods
+-- to load a single sample/utterance out
+-- function BaseDataloader:loadAudioSample(audiofilepath,...)
+--     error "Not Implemented"
+-- end
+--
+-- function BaseDataloader:loadAudioUtterance(audiofilepath,...)
+--     error "Not Implemented"
+-- end
+
 -- templates to callback the iterators
-function BaseDataloader:_beforeIter(...)
+function BaseDataloader:beforeIter(...)
     return
 end
 -- Callback for any tasks after finishing the iteration e.g. closing files
-function BaseDataloader:_afterIter(...)
+function BaseDataloader:afterIter(...)
     return
 end
 
@@ -63,11 +73,11 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
 
     local inputs, targets
 
-    self._beforeIter(unpack(dots))
+    self:beforeIter(unpack(dots))
     -- build iterator
     return function()
         if numsamples >= epochsize then
-            self._afterIter(unpack(dots))
+            self:afterIter(unpack(dots))
             return
         end
 
@@ -96,11 +106,11 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     local min = math.min
 
     local inputs, targets , bs, stop
-    self._beforeIter(unpack(dots))
+    self:beforeIter(unpack(dots))
     -- build iterator
     return function()
         if curutterance >= epochsize then
-            self._afterIter(unpack(dots))
+            self:afterIter(unpack(dots))
             return
         end
 
@@ -114,6 +124,6 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
         curutterance = curutterance + bs
 
-        return curutterance,epochsize, unpack(batch)
+        return curutterance, epochsize, unpack(batch)
     end
 end
