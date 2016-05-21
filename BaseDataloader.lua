@@ -26,15 +26,25 @@ function BaseDataloader:getSample(ids,start,stop,...)
     error "Not Implemented"
 end
 
+-- templates to callback the iterators
+function BaseDataloader:_beforeIter(...)
+    return
+end
+-- Callback for any tasks after finishing the iteration e.g. closing files
+function BaseDataloader:_afterIter(...)
+    return
+end
 
 function BaseDataloader:subSamples(start,stop, ... )
     self._sampleid = self._sampleid or torch.LongTensor()
-    self._sampleid:resize(stop-start+1):range(start,stop)
+    self._sampleid:resize(stop-start + 1):range(start,stop)
     return self:getSample(self._sampleid,...)
 end
 
-function BaseDataloader:getUtterances(uttid, ... )
-    return self:getUtterance(uttid,...)
+function BaseDataloader:getUtterances(start,stop, ... )
+    self._utteranceids = self._utteranceids or torch.LongTensor()
+    self._utteranceids:resize(stop-start+1):range(start,stop)
+    return self:getUtterance(self._utteranceids,...)
 end
 
 -- Loads a single audio file into the memory. Used to overload by other classes and should be called during getSample()
@@ -52,15 +62,19 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     local min = math.min
 
     local inputs, targets
+
+    self._beforeIter(unpack(dots))
     -- build iterator
     return function()
         if numsamples >= epochsize then
+            self._afterIter(unpack(dots))
             return
         end
 
         local bs = min(numsamples+batchsize, epochsize) - numsamples
 
-        local stop = numsamples + bs
+
+        local stop = numsamples + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
         local batch = {self:subSamples(numsamples, stop, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
@@ -73,31 +87,33 @@ end
 
 -- Iterator which returns whole utterances batched
 function BaseDataloader:uttiterator(batchsize,epochsize, ... )
-    batchsize = batchsize or 16
+    batchsize = batchsize or 1
     local dots = {...}
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:usize()
-    local numsamples = 1
+    local curutterance = 1
 
     local min = math.min
 
     local inputs, targets , bs, stop
+    self._beforeIter(unpack(dots))
     -- build iterator
     return function()
-        if numsamples >= epochsize then
+        if curutterance >= epochsize then
+            self._afterIter(unpack(dots))
             return
         end
 
-        bs = min(numsamples+batchsize, epochsize) - numsamples
+        bs = min(curutterance+batchsize, epochsize) - curutterance
 
-        stop = numsamples + bs
+        stop = curutterance + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(numsamples, stop, unpack(dots))}
+        local batch = {self:getUtterances(curutterance, stop, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
 
-        numsamples = numsamples + bs
+        curutterance = curutterance + bs
 
-        return numsamples,epochsize, unpack(batch)
+        return curutterance,epochsize, unpack(batch)
     end
 end
