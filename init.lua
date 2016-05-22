@@ -12,8 +12,6 @@ unpack = unpack or table.unpack
 
 floor = math.floor
 
-
-
 local adl = require '_base'
 
 require 'BaseDataloader'
