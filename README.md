@@ -12,12 +12,14 @@ Following classes encompass the library:
 local audioload = require 'audioload'
 ```
 
-
-
-
 <a name='basedataloader'></a>
 ## BaseDataLoader
+
+BaseDataloader is the abstract main class of all the dataloader facilities. It provides two basic functions which are #sampleiterator and #uttiterator to iterate over sample or utterances respectively
 
 
 <a name='wavedataloader'></a>
 ## WaveDataloader
+
+<a name='hdf5iterator'></a>
+## HDF5Iterator
