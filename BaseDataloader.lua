@@ -22,37 +22,16 @@ function BaseDataloader:dim()
     error "Not Implemented"
 end
 
-function BaseDataloader:getSamples(ids,start,stop,...)
-    local labels = self:prepareSample()
-    local start,stop
-    for i=1,labels:size(1) do
-        start,stop = self:getStartEnd()
-        self:loadSample(labels[i],start,stop,...)
-    end
-    return self:returnSample()
-end
-
-function BaseDataloader:prepareSample()
-    error "Not Implemented"
-end
-
-function BaseDataloader:getStartEnd()
-    error "Not Implemented"
-end
-
-function BaseDataloader:loadSample(label,start,stop,...)
-    error "Not Implemented"
-end
-
 -- These two methods should be called within the getSample/getutterance methods
 -- to load a single sample/utterance out
--- function BaseDataloader:loadAudioSample(audiofilepath,...)
---     error "Not Implemented"
--- end
---
--- function BaseDataloader:loadAudioUtterance(audiofilepath,...)
---     error "Not Implemented"
--- end
+-- Loads a single audio file into the memory. Used to overload by other classes and should be called during getSample()
+function BaseDataloader:loadAudioSample(audiofilepath,...)
+    error "Not Implemented"
+end
+
+function BaseDataloader:loadAudioUtterance(audiofilepath,...)
+    error "Not Implemented"
+end
 
 -- templates to callback the iterators
 function BaseDataloader:beforeIter(...)
@@ -75,15 +54,6 @@ function BaseDataloader:getUtterances(start,stop,audioloader, ... )
     return self:getUtterance(self._utteranceids,audioloader,...)
 end
 
--- Loads a single audio file into the memory. Used to overload by other classes and should be called during getSample()
-function BaseDataloader:loadAudioSample(audiofilepath,start,stop,...)
-    error "Not Implemented"
-end
-
-function BaseDataloader:getAudioLoader()
-    error "Not Implemented"
-end
-
 function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     batchsize = batchsize or 16
     local dots = {...}
@@ -96,6 +66,7 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     local inputs, targets
 
     self:beforeIter(unpack(dots))
+    -- Hack around for hdf5iterator
     local audioloader = self.loadAudioSample
     -- build iterator
     return function()
@@ -132,6 +103,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
 
     self:beforeIter(unpack(dots))
+    -- Hack around for hdf5iterator
     local audioloader = self.loadAudioUtterance
     -- build iterator
     return function()

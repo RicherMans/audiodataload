@@ -18,8 +18,14 @@ local audioload = require 'audioload'
 BaseDataloader is the abstract main class of all the dataloader facilities. It provides two basic functions which are #sampleiterator and #uttiterator to iterate over sample or utterances respectively
 
 
+### Methods
+
+
+
 <a name='wavedataloader'></a>
 ## WaveDataloader
+
+WaveDataloader loads features from the
 
 <a name='hdf5iterator'></a>
 ## HDF5Iterator
