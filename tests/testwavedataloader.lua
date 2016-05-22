@@ -16,13 +16,6 @@ local tester = torch.Tester()
 function modeltester:init()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader(filepath,100)
-
-    local it = dataloader:sampleiterator(5)
-    dataloader:random()
-    for i,k,v,d in it do
-        -- xlua.progress(i,k)
-        -- print(i,k,v,d)
-    end
 end
 
 function modeltester:testSeqlenSample()
@@ -45,6 +38,7 @@ function modeltester:testUtteranceSeq()
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=100,padding='right'}
 
     local it = dataloader:uttiterator(1)
+    local tic = torch.tic()
     for i,k,v,t in it do
         tester:assert(i ~= nil)
         tester:assert(k ~= nil)
@@ -54,11 +48,13 @@ function modeltester:testUtteranceSeq()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
+    print("Took "..torch.toc(tic))
 end
 function modeltester:testUtteranceNoSeq()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=1,padding='right'}
 
+    local tic = torch.tic()
     local it = dataloader:uttiterator(1)
     for i,k,v,t in it do
         tester:assert(i ~= nil)
@@ -69,6 +65,7 @@ function modeltester:testUtteranceNoSeq()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
+    print("Took "..torch.toc(tic))
 end
 
 tester:add(modeltester)

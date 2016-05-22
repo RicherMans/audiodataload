@@ -27,15 +27,9 @@ local initcheck = argcheck{
         opt=true
     },
     {
-        name='deflate',
-        type='boolean',
-        help="If newfile is provided, we can deflate the dumped file ( but needs more time do to so)",
-        default=false
-    },
-    {
         name='chunksize',
-        type='torch.LongTensor',
-        help="If newfile is provided and deflate is active, this arguments specifies the average chunksize the data is stored with.",
+        type='number',
+        help="If newfile is provided, this arguments specifies the average chunksize for a deflated file, thus also enabling deflation.",
         opt=true
     }
 
@@ -59,18 +53,13 @@ function Hdf5iterator:__init(...)
 
     local hdf5options = hdf5.DataSetOptions()
 
-    if self.deflate then
+    if self.chunksize then
         hdf5options:setDeflate()
-        if self.chunksize then
-            hdf5options:setChunked(self.chunksize)
-        end
+        hdf5options:setChunked(self.chunksize)
     end
     for done,finish,input,_,filepath in uttiterator do
-        hdf5write:write(filepath[1],input,hdf5options)
+        hdf5write:write(filepath[1],input:view(input:nElement()),hdf5options)
     end
-
-    -- self.module.loadAudioSample = self.loadAudioSample
-    -- self.module.loadAudioUtterance = self.loadAudioUtterance
 
 end
 
@@ -95,8 +84,9 @@ function Hdf5iterator:dim()
     return self.module:dim()
 end
 
+-- Attach the opencache module to the wrapped class
 function Hdf5iterator:beforeIter(...)
-    self._opencache = hdf5.open(self.filepath,'r')
+    self.module._opencache = hdf5.open(self.filepath,'r')
 end
 
 function Hdf5iterator:getSample(ids,...)
@@ -107,16 +97,16 @@ function Hdf5iterator:getUtterance(start,stop, ...)
 end
 
 function Hdf5iterator:afterIter(...)
-    self._opencache:close()
+    self.module._opencache:close()
+    self.module._opencache = nil
 end
 
 -- Passing the opened hdf5file as the first arg in the dots
 function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
-    print(self)
-    return self._opencache:read(audiofilepath):partial(start,stop)
+    local readfile = self._opencache:read(audiofilepath)
+    return readfile:partial({start,stop})
 end
 
 function Hdf5iterator:loadAudioUtterance(audiofilepath,...)
-    print(audiofilepath)
     return self._opencache:read(audiofilepath):all()
 end

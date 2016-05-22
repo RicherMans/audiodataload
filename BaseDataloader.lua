@@ -22,7 +22,25 @@ function BaseDataloader:dim()
     error "Not Implemented"
 end
 
-function BaseDataloader:getSample(ids,start,stop,...)
+function BaseDataloader:getSamples(ids,start,stop,...)
+    local labels = self:prepareSample()
+    local start,stop
+    for i=1,labels:size(1) do
+        start,stop = self:getStartEnd()
+        self:loadSample(labels[i],start,stop,...)
+    end
+    return self:returnSample()
+end
+
+function BaseDataloader:prepareSample()
+    error "Not Implemented"
+end
+
+function BaseDataloader:getStartEnd()
+    error "Not Implemented"
+end
+
+function BaseDataloader:loadSample(label,start,stop,...)
     error "Not Implemented"
 end
 
@@ -45,20 +63,24 @@ function BaseDataloader:afterIter(...)
     return
 end
 
-function BaseDataloader:subSamples(start,stop, ... )
+function BaseDataloader:subSamples(start,stop, audioloader, ... )
     self._sampleid = self._sampleid or torch.LongTensor()
     self._sampleid:resize(stop-start + 1):range(start,stop)
-    return self:getSample(self._sampleid,...)
+    return self:getSample(self._sampleid, audioloader, ...)
 end
 
-function BaseDataloader:getUtterances(start,stop, ... )
+function BaseDataloader:getUtterances(start,stop,audioloader, ... )
     self._utteranceids = self._utteranceids or torch.LongTensor()
     self._utteranceids:resize(stop-start+1):range(start,stop)
-    return self:getUtterance(self._utteranceids,...)
+    return self:getUtterance(self._utteranceids,audioloader,...)
 end
 
 -- Loads a single audio file into the memory. Used to overload by other classes and should be called during getSample()
 function BaseDataloader:loadAudioSample(audiofilepath,start,stop,...)
+    error "Not Implemented"
+end
+
+function BaseDataloader:getAudioLoader()
     error "Not Implemented"
 end
 
@@ -74,19 +96,20 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     local inputs, targets
 
     self:beforeIter(unpack(dots))
+    local audioloader = self.loadAudioSample
     -- build iterator
     return function()
-        if numsamples >= epochsize then
+        if numsamples > epochsize then
             self:afterIter(unpack(dots))
             return
         end
 
-        local bs = min(numsamples+batchsize, epochsize) - numsamples
+        local bs = min(numsamples+batchsize, epochsize + 1) - numsamples
 
 
         local stop = numsamples + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(numsamples, stop, unpack(dots))}
+        local batch = {self:subSamples(numsamples, stop, audioloader, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
 
@@ -106,19 +129,22 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     local min = math.min
 
     local inputs, targets , bs, stop
+
+
     self:beforeIter(unpack(dots))
+    local audioloader = self.loadAudioUtterance
     -- build iterator
     return function()
-        if curutterance >= epochsize then
+        if curutterance > epochsize then
             self:afterIter(unpack(dots))
             return
         end
 
-        bs = min(curutterance+batchsize, epochsize) - curutterance
+        bs = min(curutterance+batchsize, epochsize + 1 ) - curutterance
 
         stop = curutterance + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(curutterance, stop, unpack(dots))}
+        local batch = {self:getUtterances(curutterance, stop,audioloader, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
 

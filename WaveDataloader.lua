@@ -5,7 +5,6 @@ require 'audio'
 
 
 local initcheck = argcheck{
-    quiet=true,
     {
         name="path",
         type="string",
@@ -55,7 +54,7 @@ local function readfilelabel(labels,num)
 end
 
 function WaveDataloader:__init(...)
-    local this,path,framesize,shift,seqlen,padding = initcheck(...)
+    local path,framesize,shift,seqlen,padding = initcheck(...)
 
     -- Framesize is the actual dimension of a single sample
     self._dim = framesize
@@ -93,6 +92,7 @@ function WaveDataloader:_headerstosamples(samplelengths,overall_samples)
 end
 
 function WaveDataloader:_readfilelengths(filename)
+    assert(type(filename) == 'string',"Filename is not a string")
     assert(paths.filep(filename) ~= '',"Filename ".. filename .. "does not exist")
     -- The cache for the filepaths
     local filelabels = torch.CharTensor()
@@ -199,10 +199,8 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
     return self._buf
 end
 
-
 -- Iterator callback functions
-
-function WaveDataloader:getSample(ids,...)
+function WaveDataloader:getSample(ids, audioloader, ...)
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,ids)
     local labels = self.filelabels:index(1,self._featids)
@@ -238,14 +236,14 @@ function WaveDataloader:getSample(ids,...)
     for i=1,labels:size(1) do
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
         frameend = framestart+framewindow - 1
-        wavesample = self:loadAudioSample(readfilelabel(labels,i),framestart,frameend,...)
+        wavesample = audioloader(self,readfilelabel(labels,i),framestart,frameend,...)
         self._input:narrow(batchdim,i,1):copy(wavesample)
     end
     return self._input,self._target
 end
 
 -- returns a whole utterance, either chunked into batches X dim or if seqlen is specified the data goes into the seqlen , batchdim will be left as one
-function WaveDataloader:getUtterance(uttids)
+function WaveDataloader:getUtterance(uttids,audioloader,...)
     local numbatches = uttids:size(1)
     assert( (numbatches == 1) or (self.seqlen > 1), "Multiple batches is only supported with a fixed seqlength!")
     local labels = self.filelabels:index(1,uttids)
@@ -271,7 +269,7 @@ function WaveDataloader:getUtterance(uttids)
     -- In case we have only one batch, we return the whole tensor as in size NFRAMES (BATCHDIM) X Targetdim
     else
         filelabels[#filelabels + 1] = readfilelabel(labels,1)
-        local wavesample = self:loadAudioUtterance(filelabels[#filelabels],true)
+        local wavesample = audioloader(self,filelabels[#filelabels],true)
         self._input:resize(wavesample:size(1)/self:dim(),self:dim()):copy(wavesample)
     end
 
