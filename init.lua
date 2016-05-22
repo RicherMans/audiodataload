@@ -12,11 +12,11 @@ unpack = unpack or table.unpack
 
 floor = math.floor
 
-local adl = require '_base'
+local adl = require 'audiodataload._base'
 
-require 'BaseDataloader'
-require 'WaveDataloader'
-require 'Hdf5iterator'
+require 'audiodataload.BaseDataloader'
+require 'audiodataload.WaveDataloader'
+require 'audiodataload.Hdf5iterator'
 
 
 return adl

@@ -18,7 +18,22 @@ local audioload = require 'audioload'
 BaseDataloader is the abstract main class of all the dataloader facilities. It provides two basic functions which are #sampleiterator and #uttiterator to iterate over sample or utterances respectively
 
 
-### Methods
+### [n] size()
+
+### [n] dim()
+
+### [n] nClasses()
+
+### random()
+
+
+### [iterator] uttiterator(batchsize [n], epochsize [n])
+
+### [iterator] sampleiterator(batchsize [n], epochsize [n])
+
+
+### 
+
 
 
 

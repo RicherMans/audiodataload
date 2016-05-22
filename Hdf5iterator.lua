@@ -1,4 +1,4 @@
-local adl = require '_base'
+local adl = require 'audiodataload._base'
 local Hdf5iterator = torch.class('adl.Hdf5iterator', 'adl.BaseDataloader',adl)
 
 local hdf5 = require 'hdf5'

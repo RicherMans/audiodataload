@@ -1,4 +1,4 @@
-local adl = require '_base'
+local adl = require 'audiodataload._base'
 local WaveDataloader = torch.class('adl.WaveDataloader', 'adl.BaseDataloader', adl)
 
 require 'audio'
@@ -68,6 +68,8 @@ function WaveDataloader:__init(...)
     self.targets = targets
     self._nsamples = overall_samples
     self._numutterances = filelabels:size(1)
+    -- Assuming that the targets are all enumerated in ascending order
+    self._numbertargets = torch.max(self.targets,1):squeeze()
 
     self.sampletofeatid, self.sampletoclassrange = self:_headerstosamples(headerlengths,self:size())
 
@@ -286,6 +288,10 @@ end
 -- Returns the size of the dataset
 function WaveDataloader:size()
     return self._nsamples
+end
+
+function WaveDataloader:nClasses()
+    return self._numbertargets
 end
 
 -- Returns the size of the utterances

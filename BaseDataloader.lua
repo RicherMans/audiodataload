@@ -1,9 +1,9 @@
-local adl = require '_base'
+local adl = require 'audiodataload._base'
 local BaseDataloader = torch.class('adl.BaseDataloader', adl)
 
 
 -- Randomizes the input
-function BaseDataloader:random()
+function BaseDataloader:()
     error "Not implemented"
 end
 
@@ -19,6 +19,11 @@ end
 
 -- Returns the data dimensions
 function BaseDataloader:dim()
+    error "Not Implemented"
+end
+
+-- returns number of classes in the dataset
+function BaseDataloader:nClasses()
     error "Not Implemented"
 end
 
@@ -74,7 +79,6 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
             self:afterIter(unpack(dots))
             return
         end
-
         local bs = min(numsamples+batchsize, epochsize + 1) - numsamples
 
 
@@ -85,7 +89,7 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
         -- inputs, targets = batch[1], batch[2]
 
         numsamples = numsamples + bs
-        return numsamples,epochsize, unpack(batch)
+        return numsamples - 1,epochsize, unpack(batch)
     end
 end
 
@@ -122,6 +126,6 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
         curutterance = curutterance + bs
 
-        return curutterance, epochsize, unpack(batch)
+        return curutterance - 1, epochsize, unpack(batch)
     end
 end
