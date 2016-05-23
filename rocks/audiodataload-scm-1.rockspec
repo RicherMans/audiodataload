@@ -2,13 +2,13 @@ package = "audiodataload"
 version = "scm-1"
 
 source = {
-   url = "git://github.com/richermans/audiodataload",
+   url = "git://github.com/Richermans/audiodataload",
    tag = "master"
 }
 
 description = {
    summary = "A library for loading audio based features in torch",
-   homepage = "https://github.com/richermans/audiodataload",
+   homepage = "https://github.com/Richermans/audiodataload",
    license = "BSD"
 }
 

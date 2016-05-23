@@ -125,12 +125,63 @@ Returns an iterator to the utterances itself. It has two different modes:
 1. If `batchsize == 1` then it returns a 2d tensor, having dimensions `nsample * datadim`
 2. If `batchsize > 1` then one must specify `seqlen > 1`. It returns a tensor of size `seqlen * batchsize * datadim`, where the `seqlen` does determinate how many sequences are taken into account, thus it either cuts off the input wave or extends them with zeros.
 
+Example to iterate with 1 batchsize ( useful for evaluation of seqences ):
+
+```lua
+local traindatawave = audiodataload.WaveDataloader{
+    path = 'traindata',
+    framesize = 100,
+}
+-- Randomize the input first
+traindatawave:random()
+-- defaults to batchsize 1, thus returning nsample * datadim
+local sampleiterator = traindatawave:uttiterator()
+for done, max, input,target, filepath in sampleiterator do
+    -- Do stuff
+end
+```
+
+Example for iteration with seqlength and batchsize.
+
+```lua
+local traindatawave = audiodataload.WaveDataloader{
+    path = 'traindata',
+    framesize = 100,
+    seqlen = 200,
+}
+traindatawave:random()
+-- returning seqlen * nsample * datadim
+-- it pads the tensors to have seqlen 200 with zeros from the left
+local sampleiterator = traindatawave:uttiterator(128)
+for done, max, input,target, filepath in sampleiterator do
+    -- Do stuff
+    print(input:size())-- has size seqlen (200) * batchdim(128) * datadim(100)
+end
+```
+
 <a name='adl.wavedataloader.sampleiterator'></a>
 ### [iterator] sampleiterator(batchsize [n], epochsize [n])
 
 Returns an iterator to single samples of the wavedataset. The output is at most of size `batchsize` and `epochsize` defaults to the dataset's samplesize.
 
 **Note** that this iterator always loads in a full utterance and then cut's it appropriately, meaning that if utterances are very large, this iterator can be very slow. In this case please wrap it with [Hdf5iterator](#adl.hdfiterator).
+
+Example:
+
+```lua
+local traindatawave = audiodataload.WaveDataloader{
+    path = 'traindata',
+    framesize = 100,
+    seqlen = 10,
+}
+-- Randomize the input first
+-- batchsize 128
+local sampleiterator = traindatawave:sampleiterator(128)
+for done, max, input,target, filepath in sampleiterator do
+    -- Do stuff
+end
+```
+
 
 <a name='adl.hdfiterator'></a>
 ## HDF5Iterator
@@ -146,3 +197,7 @@ This class is a wrapper, most likely to be used with [WaveDataloader](#adl.waved
 <a name='adl.hdfiterator.sampleiterator'></a>
 ### [iterator] sampleiterator(batchsize [n], epochsize [n])
 Performs the wrapped module's iteration, but loads the data from the hdf5 file using `partial` loading.
+
+<a name='adl.hdfiterator.uttiterator'></a>
+### [iterator] uttiterator(batchsize [n], epochsize [n])
+Performs the wrapped module's iteration, but loads the data from the hdf5 file using `all` loading.
