@@ -3,7 +3,7 @@ version = "scm-1"
 
 source = {
    url = "git://github.com/Richermans/audiodataload",
-   tag = "v0.1a"
+   tag = "master"
 }
 
 description = {
