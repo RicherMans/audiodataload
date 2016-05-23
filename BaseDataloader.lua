@@ -3,7 +3,7 @@ local BaseDataloader = torch.class('adl.BaseDataloader', adl)
 
 
 -- Randomizes the input
-function BaseDataloader:()
+function BaseDataloader:random()
     error "Not implemented"
 end
 

@@ -29,7 +29,12 @@ local initcheck = argcheck{
         name='seqlen',
         type='number',
         help="Sequence length of an utterance, if this value is > 1 it forces the output tensor to be Seqlen X batchsize X framesize",
-        default=1
+        default=1,
+        -- Only allow nonzero numbers
+        check = function(num)
+            if num > 0 then return true end
+        end
+
     },
     {
         name='padding',
@@ -66,6 +71,7 @@ function WaveDataloader:__init(...)
 
     self.filelabels = filelabels
     self.targets = targets
+    -- Set the getter functions
     self._nsamples = overall_samples
     self._numutterances = filelabels:size(1)
     -- Assuming that the targets are all enumerated in ascending order
@@ -145,6 +151,10 @@ function WaveDataloader:_readfilelengths(filename)
         linecount = linecount + 1
     end
     return filelabels,targets,headerlengths,overall_samples
+end
+
+function WaveDataloader:extractSample(start,stop)
+
 end
 
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zero padding is applied on either the left or the right side of the tensor, making it possible to use MaskZero()

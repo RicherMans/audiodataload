@@ -26,13 +26,15 @@ BaseDataloader is the abstract main class of all the dataloader facilities. It p
 
 ### random()
 
-
 ### [iterator] uttiterator(batchsize [n], epochsize [n])
+
+When this method is called, the subclass methods ```getSample``` method is explicitly called and needs to return at least a list of the inputs and labels for the current batch. The implementation does differ from class to class, thus please refer to the wavedataloader#uttiterator for further information.
+
+
 
 ### [iterator] sampleiterator(batchsize [n], epochsize [n])
 
 
-### 
 
 
 
@@ -41,6 +43,10 @@ BaseDataloader is the abstract main class of all the dataloader facilities. It p
 ## WaveDataloader
 
 WaveDataloader loads features from the
+
+### [iterator] uttiterator(batchsize [n], epochsize [n])
+
+Returns an iterator to the utterances itself. It has two different modes, first if ```batchsize == 1``` then it returns a 2d tensor, having dimensions ``` nsample
 
 <a name='hdf5iterator'></a>
 ## HDF5Iterator

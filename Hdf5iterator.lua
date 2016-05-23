@@ -9,22 +9,11 @@ local initcheck = argcheck{
         name='module',
         type='adl.BaseDataloader',
         help="The module to wrap around",
-        opt=false,
     },
     {
         name='filepath',
         type='string',
-        help="Cachefile for the HDF5 dumped file",
-        check = function (filepath)
-            if paths.filep(filepath) then return true else return false end
-        end,
-        opt=true,
-    },
-    {
-        name='newfile',
-        type='string',
-        help="A newfile where the wrapped module is dumped into",
-        opt=true
+        help="Cachefile for the HDF5 dumped file. If this file does not exist, we dump the modules content into it",
     },
     {
         name='chunksize',
@@ -38,28 +27,31 @@ local initcheck = argcheck{
 function Hdf5iterator:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
-    assert(self.filepath ~= nil or self.newfile ~= nil, "Either filepath or newfile needs to be specified")
-    assert(paths.filep(self.newfile) == false,"File [ " .. self.newfile .." ] already exists, please specify a new file")
-    -- Filepath is nil, thus newfile is specified, thus we dump the file first
-    if self.filepath == nil then
-        self.filepath = self.newfile
-    else
-        self.newfile = self.filepath
+    assert(self.filepath ~= nil, "Filepath needs to be specified")
+    -- Filepath is not found thus dump the modules content
+    if not paths.filep(self.filepath) then
+        -- Dumping filecontent first into hdf5
+        local uttiterator = self.module:uttiterator()
+        local seqlentmp = self.module.seqlen
+        -- Hijack the module, to force it to iterate over the whole utterance
+        self.module.seqlen = 1
+        local hdf5write = hdf5.open(self.filepath,'w')
+
+        local hdf5options = hdf5.DataSetOptions()
+
+        if self.chunksize then
+            hdf5options:setDeflate()
+            hdf5options:setChunked(self.chunksize)
+        end
+        for done,finish,input,_,filepath in uttiterator do
+            -- Dump into single dimensional array
+            hdf5write:write(filepath[1],input:view(input:nElement()),hdf5options)
+        end
+        -- reset the hijack
+        self.module.seqlen = seqlentmp
+        hdf5write:close()
     end
 
-    -- Dumping filecontent first into hdf5
-    local uttiterator = self.module:uttiterator()
-    local hdf5write = hdf5.open(self.newfile,'w')
-
-    local hdf5options = hdf5.DataSetOptions()
-
-    if self.chunksize then
-        hdf5options:setDeflate()
-        hdf5options:setChunked(self.chunksize)
-    end
-    for done,finish,input,_,filepath in uttiterator do
-        hdf5write:write(filepath[1],input:view(input:nElement()),hdf5options)
-    end
 
 end
 
@@ -82,6 +74,10 @@ end
 -- Returns the data dimensions
 function Hdf5iterator:dim()
     return self.module:dim()
+end
+
+function Hdf5iterator:nClasses()
+    return self.module:nClasses()
 end
 
 -- Attach the opencache module to the wrapped class

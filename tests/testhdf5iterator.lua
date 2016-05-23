@@ -18,7 +18,7 @@ function modeltester:init()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader(filepath,100)
 
-    local wrapper = audioload.Hdf5iterator{module=dataloader,newfile='myfile',chunksize=10000}
+    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile',chunksize=10000}
     sys.fexecute("rm myfile")
 end
 --
@@ -26,7 +26,7 @@ function modeltester:itersample()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader(filepath,100)
 
-    local wrapper = audioload.Hdf5iterator{module=dataloader,newfile='myfile2',chunksize=50000}
+    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2',chunksize=50000}
     wrapper:random()
 
     local it = wrapper:sampleiterator(100)
@@ -35,7 +35,7 @@ function modeltester:itersample()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
-    print("Took "..torch.toc(tic))
+    print("HDF Took "..torch.toc(tic))
 
 
     tic = torch.tic()
@@ -44,7 +44,7 @@ function modeltester:itersample()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
-    print("Took "..torch.toc(tic))
+    print("Wav Took "..torch.toc(tic))
 
     sys.fexecute("rm myfile2")
 end
@@ -54,7 +54,7 @@ function modeltester:iterutt()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader(filepath,100)
 
-    local wrapper = audioload.Hdf5iterator{module=dataloader,newfile='myfile1'}
+    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile1'}
     wrapper:random()
 
     local it = wrapper:uttiterator(1)
