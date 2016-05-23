@@ -21,6 +21,23 @@ function modeltester:init()
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile',chunksize=10000}
     sys.fexecute("rm myfile")
 end
+
+function modeltester:iterbigsample()
+    local filepath = "train.lst"
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=500}
+
+    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
+    wrapper:random()
+
+    local it = wrapper:sampleiterator(100)
+    local tic = torch.tic()
+    for i,k,v,d in it do
+        -- xlua.progress(i,k)
+        -- print(i,k,v,d)
+    end
+    print("\nHDF took " .. torch.toc(tic))
+    sys.fexecute("rm myfile2")
+end
 --
 function modeltester:itersample()
     local filepath = "train.lst"
@@ -35,7 +52,7 @@ function modeltester:itersample()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
-    print("HDF Took "..torch.toc(tic))
+    print("\nHDF Took "..torch.toc(tic))
 
 
     tic = torch.tic()
@@ -44,7 +61,7 @@ function modeltester:itersample()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
-    print("Wav Took "..torch.toc(tic))
+    print("\nWav Took "..torch.toc(tic))
 
     sys.fexecute("rm myfile2")
 end
