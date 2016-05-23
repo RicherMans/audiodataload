@@ -3,13 +3,13 @@ version = "scm-1"
 
 source = {
    url = "git://github.com/Richermans/audiodataload",
-   tag = "master"
+   tag = "v0.1"
 }
 
 description = {
    summary = "A library for loading audio based features in torch",
    homepage = "https://github.com/Richermans/audiodataload",
-   license = "BSD"
+   license = "MIT"
 }
 
 dependencies = {

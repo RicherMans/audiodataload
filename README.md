@@ -4,9 +4,9 @@ Audioload is a collection of Torch dataset loaders used for audio processing. Co
 ), this library aims for high performance while still being scalable with large datasets. That said, this library only loads data on the fly, as much as it needs, thus it does not require a large amount of memory, which makes it possible to work with very big datasets.
 Following classes encompass the library:
 
-* BaseDataloader(#adl.basedataloader) : The base abstract class that should never be directly initiated.
-* WaveDataloader(#adl.wavedataloader) : A dataloader for raw wave files ( useful for any type of feature extraction with CNN's )
-* Hdf5iterator(#adl.hdfiterator): Wraps the given dataloader with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
+* [BaseDataloader](#adl.basedataloader) : The base abstract class that should never be directly initiated.
+* [WaveDataloader](#adl.wavedataloader) : A dataloader for raw wave files ( useful for any type of feature extraction with CNN's )
+* [Hdf5iterator](#adl.hdfiterator): Wraps the given dataloader with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
 
 ```lua
 local audioload = require 'audioload'
