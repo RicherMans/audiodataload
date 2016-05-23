@@ -17,11 +17,17 @@ local initcheck = argcheck{
         name='framesize',
         type='number',
         help="Size for one frame",
+        check = function(num)
+            if num > 0  then return true end
+        end
     },
     {
         name='shift',
         type='number',
         help="Frameshift, defaults to to same length as framesize (thus not being used)",
+        check = function(num)
+            if num > 0 then return true end
+        end,
         -- Set default of being the framesize
         defaulta='framesize'
     },
@@ -151,10 +157,6 @@ function WaveDataloader:_readfilelengths(filename)
         linecount = linecount + 1
     end
     return filelabels,targets,headerlengths,overall_samples
-end
-
-function WaveDataloader:extractSample(start,stop)
-
 end
 
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zero padding is applied on either the left or the right side of the tensor, making it possible to use MaskZero()
