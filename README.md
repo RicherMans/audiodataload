@@ -107,13 +107,14 @@ Returns an iterator on the samples of the . By default the iterator returns the 
 
 WaveDataloader loads features as raw waves from the disk. Features can be accessed utterancewise or samplewise.
 
-### init(filepath, framesize [n] , [ shift [n] ], [ seqlen [ n ] ] , [ padding [n]] )
+### init( `filepath`, `framesize` [n] , [ `shift` [n] ], [ `seqlen` [ n ] ] , [ `padding` [n]], [ `usemaxseqlength` [bool] ] )
 
 * `framesize` : The size for one frame. The initial size into which an utterance is splitted to. E.g. of we have a wave utterance which consists of 1s 16k Hz audio, we obtain `16000` samples. Specifying `framesize` to be 400, we would obtain `16000/400 = 40` different frames. Generally to obtan the number of frames we calculate:
 `floor((audiosize - framesize)/shift + 1)`, whereas `audiosize` is the length of the audiofile and `shift` is the parameter below ( defaults to `framesize`)
 * `shift` : The frameshift between two frames, which enables overlapping between adjacent frames. The default is `framesize` thus no overlapping.
 * `seqlen` : If this is specified and greater than zero, we assume that one frame and following `seqlen` frames of size `framesize` are considered one sequence. Thus
 * `padding` : In some cases the given `seqlen` is larger than an utterance, thus producing an overly large inputtensor. In this cases we pad the returned tensor with zeros. This parameter specifies if the padding is done on the left ( e.g. `0000011111`) or on the right (e.g. `11111100000`).
+* `usemaxseqlength` is per default set to zero. This flag sets the `seqlen` to the maximum seqlength for the current dataset. It makes it possible to use [uttierator](#adl.wavedataloader.uttiterator) with some fixed size of batches. It implicitly pads all other arrays according to the `padding` option. This is useful for evaluation if whole utterances are to be inputted and batchnormalization is needed.
 
 
 

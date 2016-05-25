@@ -34,13 +34,12 @@ local initcheck = argcheck{
     {
         name='seqlen',
         type='number',
-        help="Sequence length of an utterance, if this value is > 1 it forces the output tensor to be Seqlen X batchsize X framesize",
+        help="Sequence length of an utterance, if this value is > 1 it forces the output tensor to be Seqlen X batchsize X framesize. If this value is 1 the output of uttiterator is nsamples X framesize.",
         default=1,
         -- Only allow nonzero numbers
         check = function(num)
             if num > 0 then return true end
         end
-
     },
     {
         name='padding',
@@ -50,11 +49,18 @@ local initcheck = argcheck{
         check =function (padtype)
             if padtype == 'left' or padtype == 'right' then return true else return false end
         end
+    },
+    {
+        name='usemaxseqlength',
+        type='boolean',
+        default=false,
+        help='If this parameter is set, seqlen is ignored and during utterance iteration, the tensor size will be maxseqlen x batchsize x framesize. This function is useful for cases zero-padded batches are needed during evaluation.'
+
     }
 }
 
 local function calcnumframes(samplessize,framesize,shift)
-    return math.floor((samplessize-framesize)/shift + 1)
+    return floor((samplessize-framesize)/shift + 1)
 end
 local function readfilelabel(labels,num)
     if num == nil then
@@ -65,13 +71,19 @@ local function readfilelabel(labels,num)
 end
 
 function WaveDataloader:__init(...)
-    local path,framesize,shift,seqlen,padding = initcheck(...)
+    local path,framesize,shift,seqlen,padding, maxseqlen = initcheck(...)
 
     -- Framesize is the actual dimension of a single sample
     self._dim = framesize
     self.shift = shift
     self.seqlen = seqlen
     self.padding = padding
+    self.usemaxseqlength = maxseqlen
+
+    if self.usemaxseqlength then
+        -- Seqlength is firstly set to one to retrieve the correct size of seqences per utterance in _readfilelengths
+        self.seqlen = 1
+    end
 
     local filelabels,targets,headerlengths, overall_samples = self:_readfilelengths(path)
 
@@ -85,6 +97,10 @@ function WaveDataloader:__init(...)
 
     self.sampletofeatid, self.sampletoclassrange = self:_headerstosamples(headerlengths,self:size())
 
+    if self.usemaxseqlength then
+        -- Set the seqence length of being the max seqencelength
+        self.seqlen = self.sampletoclassrange:max()
+    end
 
 end
 
@@ -215,6 +231,7 @@ end
 
 -- Iterator callback functions
 function WaveDataloader:getSample(ids, audioloader, ...)
+    assert(self.usemaxseqlength == false,"Not supported with maxseqlen")
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,ids)
     local labels = self.filelabels:index(1,self._featids)
