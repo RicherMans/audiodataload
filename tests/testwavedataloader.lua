@@ -23,17 +23,17 @@ local function calcnumframes(samplessize,framesize,shift)
 end
 function modeltester:testbatchUtterance()
     local filepath = "train.lst"
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=5,usemaxseqlength=true}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local iter = dataloader:uttiterator(128)
     for i,k,v,t in iter do
-        
+
     end
 end
 
 function modeltester:testSeqlenSample()
     local filepath = "train.lst"
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=5,padding='right'}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local it = dataloader:sampleiterator(128)
     for i,k,v,t in it do
@@ -46,7 +46,7 @@ end
 
 function modeltester:testUtteranceSeq()
     local filepath = "train.lst"
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=5,padding='right'}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,padding='right'}
 
     local it = dataloader:uttiterator(1)
     local tic = torch.tic()
@@ -62,7 +62,7 @@ function modeltester:testUtteranceSeq()
 end
 function modeltester:testUtteranceNoSeq()
     local filepath = "train.lst"
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,seqlen=1,padding='right'}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,padding='right'}
 
     local tic = torch.tic()
     local it = dataloader:uttiterator(1)

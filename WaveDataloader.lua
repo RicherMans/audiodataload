@@ -50,13 +50,13 @@ local initcheck = argcheck{
             if padtype == 'left' or padtype == 'right' then return true else return false end
         end
     },
-    {
-        name='usemaxseqlength',
-        type='boolean',
-        default=false,
-        help='If this parameter is set, seqlen is ignored and during utterance iteration, the tensor size will be maxseqlen x batchsize x framesize. This function is useful for cases zero-padded batches are needed during evaluation.'
-
-    }
+    -- {
+    --     name='usemaxseqlength',
+    --     type='boolean',
+    --     default=false,
+    --     help='If this parameter is set, seqlen is ignored and during utterance iteration, the tensor size will be maxseqlen x batchsize x framesize. This function is useful for cases zero-padded batches are needed during evaluation.'
+    --
+    -- }
 }
 
 local function calcnumframes(samplessize,framesize,shift)
@@ -70,37 +70,20 @@ local function readfilelabel(labels,num)
     end
 end
 
+function WaveDataloader:getNumAudioSamples(filename)
+    local feat = audio.load(filename)
+    return math.max(1,calcnumframes(feat:size(1),self:dim(),self.shift))
+end
+
 function WaveDataloader:__init(...)
     local path,framesize,shift,seqlen,padding, maxseqlen = initcheck(...)
-
     -- Framesize is the actual dimension of a single sample
     self._dim = framesize
     self.shift = shift
+    adl.BaseDataloader.__init(self,path)
+
     self.seqlen = seqlen
     self.padding = padding
-    self.usemaxseqlength = maxseqlen
-
-    if self.usemaxseqlength then
-        -- Seqlength is firstly set to one to retrieve the correct size of seqences per utterance in _readfilelengths
-        self.seqlen = 1
-    end
-
-    local filelabels,targets,headerlengths, overall_samples = self:_readfilelengths(path)
-
-    self.filelabels = filelabels
-    self.targets = targets
-    -- Set the getter functions
-    self._nsamples = overall_samples
-    self._numutterances = filelabels:size(1)
-    -- Assuming that the targets are all enumerated in ascending order
-    self._numbertargets = torch.max(self.targets,1):squeeze()
-
-    self.sampletofeatid, self.sampletoclassrange = self:_headerstosamples(headerlengths,self:size())
-
-    if self.usemaxseqlength then
-        -- Set the seqence length of being the max seqencelength
-        self.seqlen = self.sampletoclassrange:max()
-    end
 
 end
 
@@ -121,59 +104,58 @@ function WaveDataloader:_headerstosamples(samplelengths,overall_samples)
     return sampletofeatid,sampletoclassrange
 end
 
-function WaveDataloader:_readfilelengths(filename)
-    assert(type(filename) == 'string',"Filename is not a string")
-    assert(paths.filep(filename) ~= '',"Filename ".. filename .. "does not exist")
-    -- The cache for the filepaths
-    local filelabels = torch.CharTensor()
-    local targets = torch.IntTensor()
-    -- use the commandline to obtain the number of lines and maximum width of a line in linux
-    local maxPathLength = tonumber(sys.fexecute("awk '{print $1}' " .. filename .. " | wc -L | cut -f1 -d' '")) + 1
-    local nlines = tonumber(sys.fexecute("wc -l "..filename .. " | cut -f1 -d' '" ))
-    local numbertargets = tonumber(sys.fexecute("head -n 1 " .. filename .." | tr -d -c ' ' | awk '{ print length; }'")) or 1
-
-    filelabels:resize(nlines, maxPathLength):fill(0)
-    targets:resize(nlines,numbertargets):fill(-1)
-    local str_data = filelabels:data()
-    local target_data = targets:data()
-    local count = 0
-
-    local overall_samples = 0
-    local runningindex = 0
-
-    local headerlengths = torch.IntTensor(nlines)
-    local headerlengths_data = headerlengths:data()
-
-    local linecount = 0
-    local audiotensor = nil
-    local audiosamples = 0
-    local floor = math.floor
-    local max = math.max
-
-    for line in io.lines(filename) do
-        local l = line:split(' ')
-        -- Labels can be multiple ones
-        for i=2,#l do
-            target_data[count]=tonumber(l[i])
-            -- Go to the next item
-            count = count + 1
-        end
-        audiotensor = audio.load(l[1])
-
-        audiosamples = max(1,calcnumframes(audiotensor:size(1),self:dim()*self.seqlen,self.shift))
-        -- Add to the samples, but do not use the last audiochunk ( since it is not the same size as the others)
-        overall_samples = overall_samples + audiosamples
-
-        -- Load the current header
-        headerlengths_data[linecount] = audiosamples
-        -- Copy the current feature path into the featpath chartensor
-        ffi.copy(str_data,l[1])
-        -- Skip with the offset of the maxPathLength
-        str_data = str_data + maxPathLength
-        linecount = linecount + 1
-    end
-    return filelabels,targets,headerlengths,overall_samples
-end
+-- function WaveDataloader:_readfilelengths(filename)
+--     assert(type(filename) == 'string',"Filename is not a string")
+--     assert(paths.filep(filename) ~= '',"Filename ".. filename .. "does not exist")
+--     -- The cache for the filepaths
+--     local filelabels = torch.CharTensor()
+--     local targets = torch.IntTensor()
+--     -- use the commandline to obtain the number of lines and maximum width of a line in linux
+--     local maxPathLength = tonumber(sys.fexecute("awk '{print $1}' " .. filename .. " | wc -L | cut -f1 -d' '")) + 1
+--     local nlines = tonumber(sys.fexecute("wc -l "..filename .. " | cut -f1 -d' '" ))
+--     local numbertargets = tonumber(sys.fexecute("head -n 1 " .. filename .." | tr -d -c ' ' | awk '{ print length; }'")) or 1
+--
+--     filelabels:resize(nlines, maxPathLength):fill(0)
+--     targets:resize(nlines,numbertargets):fill(-1)
+--     local str_data = filelabels:data()
+--     local target_data = targets:data()
+--     local count = 0
+--
+--     local overall_samples = 0
+--
+--     local headerlengths = torch.IntTensor(nlines)
+--     local headerlengths_data = headerlengths:data()
+--
+--     local linecount = 0
+--     local audiotensor = nil
+--     local audiosamples = 0
+--     local floor = math.floor
+--     local max = math.max
+--
+--     for line in io.lines(filename) do
+--         local l = line:split(' ')
+--         -- Labels can be multiple ones
+--         for i=2,#l do
+--             target_data[count]=tonumber(l[i])
+--             -- Go to the next item
+--             count = count + 1
+--         end
+--         audiotensor = audio.load(l[1])
+--
+--         audiosamples = max(1,calcnumframes(audiotensor:size(1),self:dim()*self.seqlen,self.shift))
+--         -- Add to the samples, but do not use the last audiochunk ( since it is not the same size as the others)
+--         overall_samples = overall_samples + audiosamples
+--
+--         -- Load the current header
+--         headerlengths_data[linecount] = audiosamples
+--         -- Copy the current feature path into the featpath chartensor
+--         ffi.copy(str_data,l[1])
+--         -- Skip with the offset of the maxPathLength
+--         str_data = str_data + maxPathLength
+--         linecount = linecount + 1
+--     end
+--     return filelabels,targets,headerlengths,overall_samples
+-- end
 
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zero padding is applied on either the left or the right side of the tensor, making it possible to use MaskZero()
 function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
@@ -231,7 +213,14 @@ end
 
 -- Iterator callback functions
 function WaveDataloader:getSample(ids, audioloader, ...)
-    assert(self.usemaxseqlength == false,"Not supported with maxseqlen")
+
+    if not(  self.sampletofeatid and self.sampletoclassrange ) then
+
+        self.sampletofeatid = torch.LongTensor(self:size())
+        self.sampletoclassrange = torch.LongTensor(self:size())
+        self:sampletofeat(self.samplelengths,self.sampletofeatid,self.sampletoclassrange)
+    end
+
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,ids)
     local labels = self.filelabels:index(1,self._featids)
@@ -276,7 +265,6 @@ end
 -- returns a whole utterance, either chunked into batches X dim or if seqlen is specified the data goes into the seqlen , batchdim will be left as one
 function WaveDataloader:getUtterance(uttids,audioloader,...)
     local numbatches = uttids:size(1)
-    assert( (numbatches == 1) or (self.seqlen > 1), "Multiple batches is only supported with a fixed seqlength!")
     local labels = self.filelabels:index(1,uttids)
 
 
@@ -318,15 +306,15 @@ end
 function WaveDataloader:size()
     return self._nsamples
 end
-
-function WaveDataloader:nClasses()
-    return self._numbertargets
-end
-
--- Returns the size of the utterances
-function WaveDataloader:usize()
-    return self._numutterances
-end
+--
+-- function WaveDataloader:nClasses()
+--     return self._numbertargets
+-- end
+--
+-- -- Returns the size of the utterances
+-- function WaveDataloader:usize()
+--     return self._numutterances
+-- end
 
 -- Returns the data dimensions
 function WaveDataloader:dim()

@@ -32,9 +32,8 @@ function Hdf5iterator:__init(...)
     if not paths.filep(self.filepath) then
         -- Dumping filecontent first into hdf5
         local uttiterator = self.module:uttiterator()
-        local seqlentmp = self.module.seqlen
         -- Hijack the module, to force it to iterate over the whole utterance
-        self.module.seqlen = 1
+        self.module.usemaxseqlength = true
         local hdf5write = hdf5.open(self.filepath,'w')
 
         local hdf5options = hdf5.DataSetOptions()
@@ -48,7 +47,7 @@ function Hdf5iterator:__init(...)
             hdf5write:write(filepath[1],input:view(input:nElement()),hdf5options)
         end
         -- reset the hijack
-        self.module.seqlen = seqlentmp
+        self.module.usemaxseqlength = false
         hdf5write:close()
     end
 
