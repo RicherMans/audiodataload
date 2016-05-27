@@ -41,7 +41,6 @@ function modeltester:testSeqlenSample()
         -- tester:assert(k ~= nil)
         tester:assert(v ~= nil)
         tester:assert(t ~= nil)
-        print(t)
     end
 end
 

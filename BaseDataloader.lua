@@ -155,7 +155,6 @@ function BaseDataloader:subSamples(start,stop, random,... )
     if not(  self.sampletofeatid and self.sampletoclassrange ) then
 
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
-        print(random)
         if random then
             -- Shuffle the list
             local randomids = torch.LongTensor():randperm(self:size())
@@ -189,18 +188,11 @@ function BaseDataloader:getUtterances(start,stop, ... )
     local numbatches = self._utteranceids:size(1)
     local labels = self.filelabels:index(1,self._utteranceids)
 
-    self._input = self._input or torch.Tensor()
     self._target = self._target or torch.Tensor()
 
     self._target = self._target:resize(numbatches):copy(self.targets:index(1,self._utteranceids))
 
-    local filelabels = {}
-
-    filelabels[1] = readfilelabel(labels[1])
-
-    local wavesample = self:loadAudioUtterance(filelabels[#filelabels],true)
-    self._input:resize(wavesample:size(1)/self:dim(),self:dim()):copy(wavesample)
-    return self._input,self._target,filelabels
+    return self:loadAudioUtterance(labels,true),self._target,labels
 end
 
 function BaseDataloader:sampleiterator(batchsize,epochsize, random,...)
@@ -209,7 +201,7 @@ function BaseDataloader:sampleiterator(batchsize,epochsize, random,...)
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:size()
 
-    random = random or true
+    random = random or false
     local numsamples = 1
 
     local min = math.min

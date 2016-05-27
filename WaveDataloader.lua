@@ -85,7 +85,7 @@ end
 
 local audiobuf = nil
 local audiobufpath = nil
--- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zero padding is applied on either the left or the right side of the tensor, making it possible to use MaskZero()
+-- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
     if not (audiofilepath == audiobufpath) then
         audiobuf = audio.load(audiofilepath)
@@ -98,17 +98,6 @@ function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
         self._buf = self._buf or torch.Tensor()
         self._buf:resize(bufsize):zero()
         return self._buf
-        -- local audiosize = audiobuf:size(1)
-        -- -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
-        -- audiosize = floor(audiosize/(self:dim())) * self:dim()
-        -- -- Try to fit only the seqlen utterances in a whole in
-        -- -- audiosize = floor(audiosize/self.seqlen) * self.seqlen
-        -- self._buf:sub(1,audiosize):copy(audiobuf:sub(1,audiosize))
-        -- if self.padding == 'left' then
-        --     self._buf:sub(stop-audiosize+1,bufsize):copy(audiobuf:sub(1,audiosize))
-        -- else
-        -- end
-        -- return self._buf
     else
         return audiobuf:sub(start,stop)
     end
@@ -116,29 +105,24 @@ function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
 end
 
 function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
-    self._audioloaded = torch.Tensor() or self._audioloaded
+    -- We only pass a single audiofilepath to this function
+    audiofilepath = readfilelabel(audiofilepath)
+
+    self._audioloaded = self._audioloaded or torch.Tensor()
     wholeutt = wholeutt or ( wholeutt ~= nil or false )
     self._audioloaded = audio.load(audiofilepath)
     local origaudiosize = self._audioloaded:size(1)
     -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
     local modaudiosize = floor(origaudiosize/self:dim()) * self:dim()
-    -- Try to fit only the seqlen utterances in a whole in
-    -- modaudiosize = floor(modaudiosize/self.seqlen) * self.seqlen
     -- We trim the output if seqlen is small
     local targetsize = self:dim()
     -- return the whole utterance, for single batch cases
     if wholeutt then targetsize = modaudiosize end
     self._buf = self._buf or torch.Tensor()
     self._buf:resize(targetsize):zero()
-    -- If we have more elements as target than in the utterance, we pad. Otherwise no padding is needed , but we truncate the loaded utterance
-    -- if targetsize > modaudiosize then
-    --     if self.padding == 'left' then
-    --         self._buf:sub(targetsize-modaudiosize + 1,targetsize):copy(self._audioloaded:sub(1,modaudiosize))
-    --     else
-    --         self._buf:sub(1,modaudiosize):copy(self._audioloaded:sub(1,modaudiosize))
-    --     end
-    -- else
+
     self._buf:sub(1,targetsize):copy(self._audioloaded:sub(1,targetsize))
+    self._buf = self._buf:view(targetsize/self:dim(),self:dim())
     -- end
     return self._buf
 end
