@@ -2,11 +2,10 @@ local adl = require 'audiodataload._base'
 local BaseDataloader = torch.class('adl.BaseDataloader', adl)
 
 
--- Randomizes the input
-function BaseDataloader:random()
-    error "Not implemented"
+-- Reads a filelabel from the filelabels chartensor
+function readfilelabel(labels)
+    return ffi.string(torch.data(labels))
 end
-
 -- Number of utterances in the dataset
 function BaseDataloader:usize()
     return self._uttsize
@@ -82,9 +81,11 @@ function BaseDataloader:__init(...)
 
 end
 
-function BaseDataloader:sampletofeat(samplelengths,sampletofeatid,sampletoclassrange)
+
+function BaseDataloader:sampletofeat(samplelengths)
     local runningindex = 0
     local numsamples = 0
+    local sampletofeatid,sampletoclassrange = torch.LongTensor(self:size()),torch.LongTensor(self:size())
     for i=1,samplelengths:size(1) do
         numsamples = samplelengths[i]
         -- -- Fill in the target for each sample
@@ -93,6 +94,7 @@ function BaseDataloader:sampletofeat(samplelengths,sampletofeatid,sampletoclassr
         sampletoclassrange[{{runningindex + 1, runningindex + numsamples}}]:range(1,numsamples)
         runningindex = runningindex + numsamples
     end
+    return sampletofeatid,sampletoclassrange
 end
 
 function BaseDataloader:_readfilename(filename)
@@ -100,7 +102,7 @@ function BaseDataloader:_readfilename(filename)
     assert(paths.filep(filename) ~= '',"Filename ".. filename .. "does not exist")
     -- The cache for the filepaths
     local filelabels = torch.CharTensor()
-    local targets = torch.IntTensor()
+    local targets = torch.LongTensor()
     -- use the commandline to obtain the number of lines and maximum width of a line in linux
     local maxPathLength = tonumber(sys.fexecute("awk '{print $1}' " .. filename .. " | wc -L | cut -f1 -d' '")) + 1
     local nlines = tonumber(sys.fexecute("wc -l "..filename .. " | cut -f1 -d' '" ))
@@ -114,7 +116,7 @@ function BaseDataloader:_readfilename(filename)
 
     local overall_samples = 0
 
-    local headerlengths = torch.IntTensor(nlines)
+    local headerlengths = torch.LongTensor(nlines)
     local headerlengths_data = headerlengths:data()
 
     local linecount = 0
@@ -146,24 +148,68 @@ function BaseDataloader:_readfilename(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
-function BaseDataloader:subSamples(start,stop, audioloader, ... )
-    self._sampleid = self._sampleid or torch.LongTensor()
-    self._sampleid:resize(stop-start + 1):range(start,stop)
-    return self:getSample(self._sampleid, audioloader, ...)
+function BaseDataloader:subSamples(start,stop, random,... )
+    self._sampleids = self._sampleids or torch.LongTensor()
+    self._sampleids:resize(stop - start + 1):range(start,stop)
+
+    if not(  self.sampletofeatid and self.sampletoclassrange ) then
+
+        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
+        print(random)
+        if random then
+            -- Shuffle the list
+            local randomids = torch.LongTensor():randperm(self:size())
+            self.sampletofeatid = self.sampletofeatid:index(1,randomids)
+            self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
+        end
+
+    end
+
+    self._featids = self._featids or torch.LongTensor()
+    self._featids = self.sampletofeatid:index(1,self._sampleids)
+    local labels = self.filelabels:index(1,self._featids)
+    local batchdim = 1
+    -- The Final framesize we gonna extract
+    local framewindow = self:dim()
+
+    self._target = self._target or torch.Tensor()
+
+    self._target = self._target:resize(labels:size(1))
+
+    -- The targets are unaffected by any seqlen
+    self._target:copy(self.targets:index(1,self._featids))
+
+    return self:getSample(labels, self._featids ,...),self._target
 end
 
-function BaseDataloader:getUtterances(start,stop,audioloader, ... )
+function BaseDataloader:getUtterances(start,stop, ... )
     self._utteranceids = self._utteranceids or torch.LongTensor()
     self._utteranceids:resize(stop-start+1):range(start,stop)
-    return self:getUtterance(self._utteranceids,audioloader,...)
+
+    local numbatches = self._utteranceids:size(1)
+    local labels = self.filelabels:index(1,self._utteranceids)
+
+    self._input = self._input or torch.Tensor()
+    self._target = self._target or torch.Tensor()
+
+    self._target = self._target:resize(numbatches):copy(self.targets:index(1,self._utteranceids))
+
+    local filelabels = {}
+
+    filelabels[1] = readfilelabel(labels[1])
+
+    local wavesample = self:loadAudioUtterance(filelabels[#filelabels],true)
+    self._input:resize(wavesample:size(1)/self:dim(),self:dim()):copy(wavesample)
+    return self._input,self._target,filelabels
 end
 
-function BaseDataloader:sampleiterator(batchsize,epochsize,...)
+function BaseDataloader:sampleiterator(batchsize,epochsize, random,...)
     batchsize = batchsize or 16
     local dots = {...}
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:size()
 
+    random = random or true
     local numsamples = 1
 
     local min = math.min
@@ -171,8 +217,7 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
     local inputs, targets
 
     self:beforeIter(unpack(dots))
-    -- Hack around for hdf5iterator
-    local audioloader = self.loadAudioSample
+
     -- build iterator
     return function()
         if numsamples > epochsize then
@@ -184,7 +229,7 @@ function BaseDataloader:sampleiterator(batchsize,epochsize,...)
 
         local stop = numsamples + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(numsamples, stop, audioloader, unpack(dots))}
+        local batch = {self:subSamples(numsamples, stop, random, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
 

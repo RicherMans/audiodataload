@@ -17,6 +17,7 @@ local adl = require 'audiodataload._base'
 require 'audiodataload.BaseDataloader'
 require 'audiodataload.WaveDataloader'
 require 'audiodataload.Hdf5iterator'
+require 'audiodataload.Sequenceiterator'
 
 
 return adl

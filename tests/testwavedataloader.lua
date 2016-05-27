@@ -35,18 +35,19 @@ function modeltester:testSeqlenSample()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
-    local it = dataloader:sampleiterator(128)
+    local it = dataloader:sampleiterator(128,nil,false)
     for i,k,v,t in it do
         -- tester:assert(i ~= nil)
         -- tester:assert(k ~= nil)
         tester:assert(v ~= nil)
         tester:assert(t ~= nil)
+        print(t)
     end
 end
 
 function modeltester:testUtteranceSeq()
     local filepath = "train.lst"
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,padding='right'}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local it = dataloader:uttiterator(1)
     local tic = torch.tic()
@@ -62,7 +63,7 @@ function modeltester:testUtteranceSeq()
 end
 function modeltester:testUtteranceNoSeq()
     local filepath = "train.lst"
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,padding='right'}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local tic = torch.tic()
     local it = dataloader:uttiterator(1)
