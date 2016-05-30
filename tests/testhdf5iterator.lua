@@ -74,7 +74,7 @@ function modeltester:iterseqence()
 
     local wrapper = audioload.Hdf5iterator{module=seqdataloader,filepath='myfile2'}
 
-    local it = wrapper:sampleiterator(128)
+    local it = wrapper:sampleiterator(128,nil,true)
     local tic = torch.tic()
     for i,k,v,d in it do
         -- print(v:size())

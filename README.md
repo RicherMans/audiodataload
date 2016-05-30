@@ -6,6 +6,7 @@ Following classes encompass the library:
 
 * [BaseDataloader](#adl.basedataloader) : The base abstract class that should never be directly initiated.
 * [WaveDataloader](#adl.wavedataloader) : A dataloader for raw wave files ( useful for any type of feature extraction with CNN's )
+* [Sequenceiterator](#adl.seqenceiterator) : Wraps a given dataloader to return sequences of samples instead of only single samples. This iterator should be used when using recurrent networks.
 * [Hdf5iterator](#adl.hdfiterator): Wraps the given dataloader with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
 
 ```lua
@@ -183,6 +184,12 @@ for done, max, input,target, filepath in sampleiterator do
 end
 ```
 
+<a name='adl.seqenceiterator'></a>
+
+## Sequenceiterator
+
+
+This class wraps a [dataloader](#adl.BaseDataloader) with 
 
 <a name='adl.hdfiterator'></a>
 ## HDF5Iterator

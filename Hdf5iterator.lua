@@ -27,7 +27,6 @@ local initcheck = argcheck{
 function Hdf5iterator:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
-    print("\n",self.module)
 
     -- Copy the wrapped modules members
     for k,v in pairs(self.module) do
@@ -42,8 +41,6 @@ function Hdf5iterator:__init(...)
         local maxseqlength = self.module.usemaxseqlength or false
         self.module.usemaxseqlength = true
         local hdf5write = hdf5.open(self.filepath,'w')
-
-        print("\n",self.module)
 
         local hdf5options = hdf5.DataSetOptions()
 
@@ -104,6 +101,10 @@ end
 function Hdf5iterator:afterIter(...)
     self._opencache:close()
     self._opencache = nil
+end
+
+function Hdf5iterator:sampletofeat(samplelengths,...)
+    return self.module:sampletofeat(samplelengths,...)
 end
 
 -- Passing the opened hdf5file as the first arg in the dots
