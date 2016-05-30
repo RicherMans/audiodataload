@@ -152,19 +152,6 @@ function BaseDataloader:subSamples(start,stop, random,... )
     self._sampleids = self._sampleids or torch.LongTensor()
     self._sampleids:resize(stop - start + 1):range(start,stop)
 
-    -- Generate get the samples to feature and classes lists
-    if not(  self.sampletofeatid and self.sampletoclassrange ) then
-        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
-        if random then
-            -- Shuffle the list
-            local randomids = torch.LongTensor():randperm(self:size())
-
-            self.sampletofeatid = self.sampletofeatid:index(1,randomids)
-            self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
-        end
-
-    end
-
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,self._sampleids)
     local labels = self.filelabels:index(1,self._featids)
@@ -204,6 +191,17 @@ function BaseDataloader:sampleiterator(batchsize,epochsize, random,...)
 
     random = random or false
     local numsamples = 1
+    if not ( self.sampletofeatid and self.sampletoclassrange ) then
+        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
+    end
+
+    if random then
+        -- Shuffle the list
+        local randomids = torch.LongTensor():randperm(self:size())
+
+        self.sampletofeatid = self.sampletofeatid:index(1,randomids)
+        self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
+    end
 
     local min = math.min
 

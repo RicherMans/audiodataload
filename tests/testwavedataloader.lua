@@ -42,6 +42,7 @@ function modeltester:testrandomize()
         tester:assert(v ~= nil)
         tester:assert(t ~= nil)
     end
+
 end
 
 function modeltester:testUtteranceSeq()
@@ -60,6 +61,7 @@ function modeltester:testUtteranceSeq()
     end
     print("Took "..torch.toc(tic))
 end
+
 function modeltester:testUtteranceNoSeq()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}

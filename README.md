@@ -52,6 +52,10 @@ BaseDataloader is the abstract main class of all the dataloader facilities. It p
 
 Returns the size (samplesize) of the current dataset
 
+### [n] usize()
+
+Returns the number of utterances in the current dataset
+
 ### [n] dim()
 
 Returns the datadimension as a number.
@@ -60,22 +64,6 @@ Returns the datadimension as a number.
 
 Returns the number of target classes
 
-### random ()
-
-Internally randomizes the inputs and targets. This function should be used before the iterator is initalized e.g.
-```lua
-local traindatawave = audiodataload.WaveDataloader{
-    path = 'traindata',
-    framesize = 100,
-}
--- Randomize the input first
-traindatawave:random()
--- batchsize 16
-local sampleiterator = traindatawave:sampleiterator(16)
-for done, max, input,target, filepath in sampleiterator do
-    -- Do stuff
-end
-```
 
 <a name='adl.basedataloader.uttiterator'></a>
 ### [iterator] uttiterator(batchsize [n], epochsize [n])
@@ -91,6 +79,7 @@ Each iteration returns 4 values :
  * `n` : the number of overall utterances. This value is constant throughout the iteration.
  * `inputs` : a tensor containing a maximum of `batchsize` inputs.
  * `targets` : a tensor (or nested table thereof) containing targets for the commensurate inputs.
+ * `filepaths` : a table which contains the filepaths of the loaded utterances. Useful if one wants to extract features from the utterances.
 
 The iterator will return batches of `inputs` and `targets` of size at most `batchsize` until `epochsize` samples have been returned.
 
@@ -108,24 +97,21 @@ Returns an iterator on the samples of the . By default the iterator returns the 
 
 WaveDataloader loads features as raw waves from the disk. Features can be accessed utterancewise or samplewise.
 
-### init( `filepath`, `framesize` [n] , [ `shift` [n] ], [ `seqlen` [ n ] ] , [ `padding` [n]], [ `usemaxseqlength` [bool] ] )
+### init( filepath, framesize [n] , [ shift [n] ])
 
 * `framesize` : The size for one frame. The initial size into which an utterance is splitted to. E.g. of we have a wave utterance which consists of 1s 16k Hz audio, we obtain `16000` samples. Specifying `framesize` to be 400, we would obtain `16000/400 = 40` different frames. Generally to obtan the number of frames we calculate:
 `floor((audiosize - framesize)/shift + 1)`, whereas `audiosize` is the length of the audiofile and `shift` is the parameter below ( defaults to `framesize`)
 * `shift` : The frameshift between two frames, which enables overlapping between adjacent frames. The default is `framesize` thus no overlapping.
-* `seqlen` : If this is specified and greater than zero, we assume that one frame and following `seqlen` frames of size `framesize` are considered one sequence. Thus
-* `padding` : In some cases the given `seqlen` is larger than an utterance, thus producing an overly large inputtensor. In this cases we pad the returned tensor with zeros. This parameter specifies if the padding is done on the left ( e.g. `0000011111`) or on the right (e.g. `11111100000`).
-* `usemaxseqlength` is per default set to zero. This flag sets the `seqlen` to the maximum seqlength for the current dataset. It makes it possible to use [uttierator](#adl.wavedataloader.uttiterator) with some fixed size of batches. It implicitly pads all other arrays according to the `padding` option. This is useful for evaluation if whole utterances are to be inputted and batchnormalization is needed.
-
-
+* `usemaxseqlength` is per default set to zero. This flag sets the `seqlen` to the maximum seqlength for the current dataset. It makes it possible to use [uttiterator](#adl.wavedataloader.uttiterator) with some fixed size of batches. It implicitly pads all other arrays according to the `padding` option. This is useful for evaluation if whole utterances are to be inputted and batchnormalization is needed.
 
 
 <a name='adl.wavedataloader.uttiterator'></a>
 ### [iterator] uttiterator(batchsize [n], epochsize [n])
 
-Returns an iterator to the utterances itself. It has two different modes:
-1. If `batchsize == 1` then it returns a 2d tensor, having dimensions `nsample * datadim`
-2. If `batchsize > 1` then one must specify `seqlen > 1`. It returns a tensor of size `seqlen * batchsize * datadim`, where the `seqlen` does determinate how many sequences are taken into account, thus it either cuts off the input wave or extends them with zeros.
+Returns an iterator to the utterances. The returned utterances are always of size `nsample * datadim`. `nsample` is the number of samples for each utterance, thus this might wary.
+
+* `batchsize` : This is set to `1` and cannot be used with any other value for `batchsize`. If iterating over batches of utterances is needed, please refer to [Sequenceiterator](#adl.seqenceiterator).
+* `epochsize` : The size of the epoch, via default its `self:usize()` thus being evaluated over all the utterances.
 
 Example to iterate with 1 batchsize ( useful for evaluation of seqences ):
 
@@ -134,8 +120,6 @@ local traindatawave = audiodataload.WaveDataloader{
     path = 'traindata',
     framesize = 100,
 }
--- Randomize the input first
-traindatawave:random()
 -- defaults to batchsize 1, thus returning nsample * datadim
 local sampleiterator = traindatawave:uttiterator()
 for done, max, input,target, filepath in sampleiterator do
@@ -143,28 +127,10 @@ for done, max, input,target, filepath in sampleiterator do
 end
 ```
 
-Example for iteration with seqlength and batchsize.
-
-```lua
-local traindatawave = audiodataload.WaveDataloader{
-    path = 'traindata',
-    framesize = 100,
-    seqlen = 200,
-}
-traindatawave:random()
--- returning seqlen * nsample * datadim
--- it pads the tensors to have seqlen 200 with zeros from the left
-local sampleiterator = traindatawave:uttiterator(128)
-for done, max, input,target, filepath in sampleiterator do
-    -- Do stuff
-    print(input:size())-- has size seqlen (200) * batchdim(128) * datadim(100)
-end
-```
-
 <a name='adl.wavedataloader.sampleiterator'></a>
-### [iterator] sampleiterator(batchsize [n], epochsize [n])
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
 
-Returns an iterator to single samples of the wavedataset. The output is at most of size `batchsize` and `epochsize` defaults to the dataset's samplesize.
+Returns an iterator to single samples of the wavedataset. The output is at most of size `batchsize` and `epochsize` defaults to the dataset's samplesize. If `randimize` is set to be true, it randomizes the input for each iteration.
 
 **Note** that this iterator always loads in a full utterance and then cut's it appropriately, meaning that if utterances are very large, this iterator can be very slow. In this case please wrap it with [Hdf5iterator](#adl.hdfiterator).
 
@@ -176,9 +142,10 @@ local traindatawave = audiodataload.WaveDataloader{
     framesize = 100,
     seqlen = 10,
 }
--- Randomize the input first
+-- Randomize the input
 -- batchsize 128
-local sampleiterator = traindatawave:sampleiterator(128)
+-- nil lets the iteration use the full dataset as epochsize
+local sampleiterator = traindatawave:sampleiterator(128,nil,true)
 for done, max, input,target, filepath in sampleiterator do
     -- Do stuff
 end
@@ -189,7 +156,19 @@ end
 ## Sequenceiterator
 
 
-This class wraps a [dataloader](#adl.BaseDataloader) with 
+This class wraps a [dataloader](#adl.BaseDataloader) to iterate over batches of sequences.
+
+<a name='adl.hdfiterator.sampleiterator'></a>
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
+Performs the wrapped module's iteration, but loads the data from the hdf5 file using `partial` loading.
+
+### init( module , [ sequencelength [n] ], [ usemaxseqlength [false]], [padding [left]] )
+
+* `module` : Specifies the module to wrap sequence iteration over.
+* `sequencelength` : Per default 1, this specifies the sequence length of each returned sample. If data cannot be fitted into the sequence (e.g. there is not enough available), sequences will zeroed out.
+* `usemaxseqlength` : If this argument is set to true, we ignore the `sequencelength` argument and automatically set the sequence length to the largest sequence in the dataset( the given model).
+* `padding` : In some cases the given `seqlen` is larger than an utterance, thus producing an overly large inputtensor. In this cases we pad the returned tensor with zeros. This parameter specifies if the padding is done on the left ( e.g. `0000011111`) or on the right (e.g. `11111100000`).
+
 
 <a name='adl.hdfiterator'></a>
 ## HDF5Iterator
@@ -199,13 +178,13 @@ This class is a wrapper, most likely to be used with [WaveDataloader](#adl.waved
 ### init( module , filepath, [ chunksize [n]] )
 
 * `module` : Specifies the module to wrap hdf5 iteration over.
-* `filepath` : The file where an hdf5 file will be dumped to. If the file exists it does not create a new file. Please be reminded that it assumes a flattened tensor as an input. Bestpractice is to firstly dump a new hdf5 file, not manually creating one ( so that the dimensions match ).
+* `filepath` : The file where an hdf5 file will be dumped to. If the file exists it does not create a new file. Please be reminded that it assumes a flattened tensor as an input. Best practice is to firstly dump a new hdf5 file, not manually creating one ( so that the dimensions match ).
 * `chunksize` : If this argument is set to some number, deflate is used to compress the hdf5 file. With deflate, we split the data into chunks of `chunksize`. More information can be found [here](https://github.com/deepmind/torch-hdf5/blob/master/doc/usage.md)
 
 <a name='adl.hdfiterator.sampleiterator'></a>
-### [iterator] sampleiterator(batchsize [n], epochsize [n])
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
 Performs the wrapped module's iteration, but loads the data from the hdf5 file using `partial` loading.
 
 <a name='adl.hdfiterator.uttiterator'></a>
-### [iterator] uttiterator(batchsize [n], epochsize [n])
+### [iterator] uttiterator(batchsize [n], epochsize [n], randomize [false])
 Performs the wrapped module's iteration, but loads the data from the hdf5 file using `all` loading.
