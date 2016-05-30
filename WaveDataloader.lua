@@ -91,7 +91,6 @@ function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
         audiobuf = audio.load(audiofilepath)
     end
     audiobufpath = audiofilepath
-
     -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
     if stop > audiobuf:size(1) then
         local bufsize = stop-start + 1

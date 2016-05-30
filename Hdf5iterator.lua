@@ -27,12 +27,17 @@ local initcheck = argcheck{
 function Hdf5iterator:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
+    -- Copy the wrapped modules members
+    for k,v in pairs(self.module) do
+        self[k]=v
+    end
     assert(self.filepath ~= nil, "Filepath needs to be specified")
     -- Filepath is not found thus dump the modules content
     if not paths.filep(self.filepath) then
         -- Dumping filecontent first into hdf5
         local uttiterator = self.module:uttiterator()
         -- Hijack the module, to force it to iterate over the whole utterance
+        local maxseqlength = self.module.usemaxseqlength or false
         self.module.usemaxseqlength = true
         local hdf5write = hdf5.open(self.filepath,'w')
 
@@ -42,12 +47,12 @@ function Hdf5iterator:__init(...)
             hdf5options:setDeflate()
             hdf5options:setChunked(self.chunksize)
         end
-        for done,finish,input,_,filepath in uttiterator do
+        for done,finish,input,_,utterancepath in uttiterator do
             -- Dump into single dimensional array
-            hdf5write:write(filepath[1],input:view(input:nElement()),hdf5options)
+            hdf5write:write(readfilelabel(utterancepath[1]),input:view(input:nElement()),hdf5options)
         end
         -- reset the hijack
-        self.module.usemaxseqlength = false
+        self.module.usemaxseqlength = maxseqlength
         hdf5write:close()
     end
 
@@ -81,19 +86,20 @@ end
 
 -- Attach the opencache module to the wrapped class
 function Hdf5iterator:beforeIter(...)
-    self.module._opencache = hdf5.open(self.filepath,'r')
+    self._opencache = hdf5.open(self.filepath,'r')
 end
 
-function Hdf5iterator:getSample(ids,...)
-    return self.module:getSample(ids,...)
+function Hdf5iterator:getSample(labels,  ids, ...)
+    return self.module.getSample(self,labels,  ids, ...)
 end
+
 function Hdf5iterator:getUtterance(start,stop, ...)
-    return self.module:getUtterance(start,stop, ...)
+    return self.module.getUtterance(self,start,stop, ...)
 end
 
 function Hdf5iterator:afterIter(...)
-    self.module._opencache:close()
-    self.module._opencache = nil
+    self._opencache:close()
+    self._opencache = nil
 end
 
 -- Passing the opened hdf5file as the first arg in the dots
@@ -119,6 +125,6 @@ function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
     end
 end
 
-function Hdf5iterator:loadAudioUtterance(audiofilepath,...)
-    return self._opencache:read(audiofilepath):all()
-end
+-- function Hdf5iterator:loadAudioUtterance(audiofilepath,...)
+--     return self._opencache:read(audiofilepath):all()
+-- end

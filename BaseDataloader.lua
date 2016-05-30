@@ -153,11 +153,11 @@ function BaseDataloader:subSamples(start,stop, random,... )
     self._sampleids:resize(stop - start + 1):range(start,stop)
 
     if not(  self.sampletofeatid and self.sampletoclassrange ) then
-
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
         if random then
             -- Shuffle the list
             local randomids = torch.LongTensor():randperm(self:size())
+
             self.sampletofeatid = self.sampletofeatid:index(1,randomids)
             self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
         end
@@ -178,7 +178,7 @@ function BaseDataloader:subSamples(start,stop, random,... )
     -- The targets are unaffected by any seqlen
     self._target:copy(self.targets:index(1,self._featids))
 
-    return self:getSample(labels, self._featids ,...),self._target
+    return self:getSample(labels, self._sampleids ,...),self._target
 end
 
 function BaseDataloader:getUtterances(start,stop, ... )
