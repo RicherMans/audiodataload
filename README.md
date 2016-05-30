@@ -158,16 +158,42 @@ end
 
 This class wraps a [dataloader](#adl.BaseDataloader) to iterate over batches of sequences.
 
-<a name='adl.hdfiterator.sampleiterator'></a>
-### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
-Performs the wrapped module's iteration, but loads the data from the hdf5 file using `partial` loading.
-
 ### init( module , [ sequencelength [n] ], [ usemaxseqlength [false]], [padding [left]] )
 
 * `module` : Specifies the module to wrap sequence iteration over.
 * `sequencelength` : Per default 1, this specifies the sequence length of each returned sample. If data cannot be fitted into the sequence (e.g. there is not enough available), sequences will zeroed out.
 * `usemaxseqlength` : If this argument is set to true, we ignore the `sequencelength` argument and automatically set the sequence length to the largest sequence in the dataset( the given model).
 * `padding` : In some cases the given `seqlen` is larger than an utterance, thus producing an overly large inputtensor. In this cases we pad the returned tensor with zeros. This parameter specifies if the padding is done on the left ( e.g. `0000011111`) or on the right (e.g. `11111100000`).
+
+<a name='adl.sequenceiterator.sampleiterator'></a>
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
+Performs the wrapped module's iteration, but returns instead of samples of size `batchsize * datadim`, samples of size `seqlength * batchsize * datadim`. All seqences are stored and returned contiguously.
+```lua
+local filepath = "train.lst"
+local framesize = 100
+local dataloader = audioload.WaveDataloader(filepath,framesize)
+local seqiter = audioload.Sequenceiterator{module=dataloader,usemaxseqlength =true}
+for start,all,input,target in seqiter:sampleiterator(128,nil,true) do
+
+end
+```
+
+<a name='adl.sequenceiterator.uttiterator'></a>
+### [iterator] uttierator(batchsize [n], epochsize [n])
+
+Returns a tensor of size `seqlength * batchsize * datadim`. If `seqlength` is smaller than any of the utternaces seqencelength, the tensor will be cropped. To avoid cropping, pass `usemaxseqlength` to the constructor.
+
+```lua
+local filepath = "train.lst"
+local seqlenth = 50
+local framesize = 100
+local dataloader = audioload.WaveDataloader(filepath,framesize)
+local seqiter = audioload.Sequenceiterator(dataloader,seqlenth)
+for start,all,input,target in seqiter:uttiterator(128,nil,true)do
+    --- Do the iteration
+end
+
+```
 
 
 <a name='adl.hdfiterator'></a>
