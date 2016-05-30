@@ -152,6 +152,7 @@ function BaseDataloader:subSamples(start,stop, random,... )
     self._sampleids = self._sampleids or torch.LongTensor()
     self._sampleids:resize(stop - start + 1):range(start,stop)
 
+    -- Generate get the samples to feature and classes lists
     if not(  self.sampletofeatid and self.sampletoclassrange ) then
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
         if random then

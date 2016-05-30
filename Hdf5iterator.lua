@@ -27,6 +27,8 @@ local initcheck = argcheck{
 function Hdf5iterator:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
+    print("\n",self.module)
+
     -- Copy the wrapped modules members
     for k,v in pairs(self.module) do
         self[k]=v
@@ -40,6 +42,8 @@ function Hdf5iterator:__init(...)
         local maxseqlength = self.module.usemaxseqlength or false
         self.module.usemaxseqlength = true
         local hdf5write = hdf5.open(self.filepath,'w')
+
+        print("\n",self.module)
 
         local hdf5options = hdf5.DataSetOptions()
 
@@ -106,7 +110,8 @@ end
 function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
     local readfile = self._opencache:read(audiofilepath)
     local audiosize = readfile:dataspaceSize()[1]
-    if stop - start > audiosize then
+    if stop > audiosize then
+        print("Here",start,stop,audiosize)
         -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
         audiosize = floor(audiosize/self:dim()) * self:dim()
         -- Try to fit only the seqlen utterances in a whole in
@@ -125,6 +130,6 @@ function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
     end
 end
 
--- function Hdf5iterator:loadAudioUtterance(audiofilepath,...)
---     return self._opencache:read(audiofilepath):all()
--- end
+function Hdf5iterator:loadAudioUtterance(audiofilepath,...)
+    return self._opencache:read(readfilelabel(audiofilepath)):all()
+end

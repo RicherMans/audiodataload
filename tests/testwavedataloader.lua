@@ -31,11 +31,11 @@ function modeltester:testbatchUtterance()
     end
 end
 
-function modeltester:testSeqlenSample()
+function modeltester:testrandomize()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
-    local it = dataloader:sampleiterator(128,nil,false)
+    local it = dataloader:sampleiterator(128,nil,true)
     for i,k,v,t in it do
         -- tester:assert(i ~= nil)
         -- tester:assert(k ~= nil)

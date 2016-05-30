@@ -144,7 +144,7 @@ function WaveDataloader:getSample(labels,  ids, ...)
     for i=1,labels:size(1) do
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
         frameend = framestart+framewindow - 1
-        wavesample = self:loadAudioSample(readfilelabel(labels,i),framestart,frameend,...)
+        wavesample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         self._input[i]:copy(wavesample)
     end
     return self._input,self._target
