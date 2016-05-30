@@ -104,7 +104,9 @@ function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
 end
 
 function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
-    assert(audiofilepath:size(1) == 1,"Only non batch mode for utterances supported!")
+    if audiofilepath:dim() == 2 then
+        assert(audiofilepath:size(1) == 1,"Only non batch mode for utterances supported!")
+    end
     -- We only pass a single audiofilepath to this function
     audiofilepath = readfilelabel(audiofilepath)
 
