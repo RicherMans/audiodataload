@@ -58,7 +58,11 @@ function Sequenceiterator:__init(...)
         self.seqlen = maxseqlen
     end
 
-    self._nsamples = self.wrappedmodule:size() - ( self.seqlen* self.wrappedmodule:usize())
+    self._nsamples = self.wrappedmodule:size() - ( self.seqlen * self.wrappedmodule:usize())
+    -- In case of having a too large sequence length, we assume that every utterance is thus a single sequence
+    if self._nsamples < 1 then
+        self._nsamples = self.wrappedmodule:usize()
+    end
 
 end
 

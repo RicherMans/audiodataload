@@ -37,10 +37,9 @@ function modeltester:sampleiterlarge()
     local filepath = "train.lst"
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator{module=dataloader,usemaxseqlength =true}
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength =true}
     for start,all,input,target in seqiter:sampleiterator(128,nil,true)do
         tester:asserteq(input:dim(),3)
-        print(input:size())
         -- tester:asserteq(input:size(1),seqlenth)
         tester:asserteq(input:size(3),framesize)
         tester:asserteq(input:size(2),target:size(1))
@@ -82,7 +81,7 @@ function modeltester:uttiterfull()
     local filepath = "train.lst"
     local framesize = 200
     local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator{module=dataloader,usemaxseqlength=true}
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
     local tic = torch.tic()
     for start,all,input,target in seqiter:uttiterator(128,nil,true)do
         tester:asserteq(input:dim(),3)

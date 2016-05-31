@@ -112,7 +112,6 @@ function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
     local readfile = self._opencache:read(audiofilepath)
     local audiosize = readfile:dataspaceSize()[1]
     if stop > audiosize then
-        print("Here",start,stop,audiosize)
         -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
         audiosize = floor(audiosize/self:dim()) * self:dim()
         -- Try to fit only the seqlen utterances in a whole in

@@ -31,32 +31,6 @@ local initcheck = argcheck{
         -- Set default of being the framesize
         defaulta='framesize'
     },
-    -- {
-    --     name='seqlen',
-    --     type='number',
-    --     help="Sequence length of an utterance, if this value is > 1 it forces the output tensor to be Seqlen X batchsize X framesize. If this value is 1 the output of uttiterator is nsamples X framesize.",
-    --     default=1,
-    --     -- Only allow nonzero numbers
-    --     check = function(num)
-    --         if num > 0 then return true end
-    --     end
-    -- },
-    -- {
-    --     name='padding',
-    --     help="Left or right padding for the given utterances, left meaning we append zeros at the beginning of a sequence, right means we append at the end",
-    --     type='string',
-    --     default = 'left',
-    --     check =function (padtype)
-    --         if padtype == 'left' or padtype == 'right' then return true else return false end
-    --     end
-    -- },
-    -- {
-    --     name='usemaxseqlength',
-    --     type='boolean',
-    --     default=false,
-    --     help='If this parameter is set, seqlen is ignored and during utterance iteration, the tensor size will be maxseqlen x batchsize x framesize. This function is useful for cases zero-padded batches are needed during evaluation.'
-    --
-    -- }
 }
 
 local function calcnumframes(samplessize,framesize,shift)
@@ -103,6 +77,7 @@ function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
 
 end
 
+-- Utterance iterator callback
 function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
     if audiofilepath:dim() == 2 then
         assert(audiofilepath:size(1) == 1,"Only non batch mode for utterances supported!")
@@ -129,7 +104,7 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
     return self._buf
 end
 
--- Iterator callback functions
+-- Iterator callback function
 function WaveDataloader:getSample(labels,  ids, ...)
 
     self._input = self._input or torch.Tensor()
