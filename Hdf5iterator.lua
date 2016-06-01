@@ -60,11 +60,6 @@ function Hdf5iterator:__init(...)
 
 end
 
--- Randomizes the input
-function Hdf5iterator:random()
-    self.module:random()
-end
-
 -- Number of utterances in the dataset
 -- Just wrap it around the moduel
 function Hdf5iterator:usize()
@@ -110,24 +105,7 @@ end
 -- Passing the opened hdf5file as the first arg in the dots
 function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
     local readfile = self._opencache:read(audiofilepath)
-    local audiosize = readfile:dataspaceSize()[1]
-    if stop > audiosize then
-        -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
-        audiosize = floor(audiosize/self:dim()) * self:dim()
-        -- Try to fit only the seqlen utterances in a whole in
-        audiosize = floor(audiosize/self.seqlen) * self.seqlen
-        local bufsize = stop-start + 1
-        self._buf = self._buf or torch.Tensor()
-        self._buf:resize(bufsize):zero()
-        if self.padding == 'left' then
-            self._buf:sub(stop-audiosize+1,bufsize):copy(readfile:partial({1,audiosize}))
-        else
-            self._buf:sub(1,audiosize):copy(readfile:partial({1,audiosize}))
-        end
-        return self._buf
-    else
-        return readfile:partial({start,stop})
-    end
+    return readfile:partial({start,stop})
 end
 
 function Hdf5iterator:loadAudioUtterance(audiofilepath,...)

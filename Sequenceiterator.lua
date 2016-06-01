@@ -58,8 +58,8 @@ function Sequenceiterator:__init(...)
         self.seqlen = maxseqlen
     end
 
-
-    local onetensor = torch.Tensor(self.wrappedmodule.samplelengths:size(1)):typeAs(self.wrappedmodule.samplelengths):fill(1)
+    -- same size as samplelengths
+    local onetensor = self.wrappedmodule.samplelengths:clone():fill(1)
     -- Do for each utterance the size calculation. When we sequence any utterance, it can be said that we just remove the last self.seqlen frames from this utterance
     local numsamples = torch.add(self.wrappedmodule.samplelengths,-self.seqlen)
     -- we have always at least 1 one seqence for each utterance
