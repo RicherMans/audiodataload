@@ -58,11 +58,14 @@ function Sequenceiterator:__init(...)
         self.seqlen = maxseqlen
     end
 
-    self._nsamples = self.wrappedmodule:size() - ( self.seqlen * self.wrappedmodule:usize())
-    -- In case of having a too large sequence length, we assume that every utterance is thus a single sequence
-    if self._nsamples < 1 then
-        self._nsamples = self.wrappedmodule:usize()
-    end
+
+    local onetensor = torch.LongTensor(self.wrappedmodule.samplelengths:size(1)):fill(1)
+    -- Do for each utterance the size calculation. When we sequence any utterance, it can be said that we just remove the last self.seqlen frames from this utterance
+    local numsamples = torch.add(self.wrappedmodule.samplelengths,-self.seqlen)
+    -- we have always at least 1 one seqence for each utterance
+    numsamples = torch.cmax(onetensor,numsamples)
+
+    self._nsamples = numsamples:sum()
 
 end
 
@@ -139,9 +142,11 @@ function Sequenceiterator:sampletofeat(samplelengths)
     local runningindex = 0
     local numsamples = 0
     local sampletofeatid,sampletoclassrange = torch.LongTensor(self:size()),torch.LongTensor(self:size())
+    local acc = 0
     for i=1,samplelengths:size(1) do
         -- use at least one sample ( zero pad it later)
         numsamples = mathmax(1,samplelengths[i] - self.seqlen)
+        acc = acc + numsamples
         -- -- Fill in the target for each sample
         sampletofeatid[{{runningindex + 1, runningindex + numsamples}}]:fill(i)
         -- Fill in the internal range for each sample
