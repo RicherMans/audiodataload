@@ -64,14 +64,12 @@ end
 
 function modeltester:uttiterlarge()
     local filepath = "train.lst"
-    local seqlenth = 5001
     local framesize = 500
     local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator(dataloader,seqlenth)
+    local seqiter = audioload.Sequenceiterator(dataloader,1,true)
     local tic = torch.tic()
-    for start,all,input,target in seqiter:uttiterator(128,nil,true)do
+    for start,all,input,target in seqiter:uttiterator(128,nil)do
         tester:asserteq(input:dim(),3)
-        tester:asserteq(input:size(1),seqlenth)
         tester:asserteq(input:size(3),framesize)
         tester:asserteq(input:size(2),target:size(1))
     end

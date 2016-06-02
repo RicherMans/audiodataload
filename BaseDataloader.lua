@@ -243,8 +243,6 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
 
     self:beforeIter(unpack(dots))
-    -- Hack around for hdf5iterator
-    local audioloader = self.loadAudioUtterance
     -- build iterator
     return function()
         if curutterance > epochsize then

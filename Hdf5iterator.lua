@@ -104,8 +104,7 @@ end
 
 -- Passing the opened hdf5file as the first arg in the dots
 function Hdf5iterator:loadAudioSample(audiofilepath,start,stop,...)
-    local readfile = self._opencache:read(audiofilepath)
-    return readfile:partial({start,stop})
+    return self._opencache:read(audiofilepath):partial({start,stop})
 end
 
 function Hdf5iterator:loadAudioUtterance(audiofilepath,...)

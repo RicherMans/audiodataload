@@ -110,16 +110,17 @@ function Sequenceiterator:loadAudioUtterance(audiofilepaths,...)
     self._buf = self._buf or torch.Tensor(self.seqlen,audiofilepaths:size(1),self:dim())
     self._buf:zero()
     local audiofeat
+    -- Final size of the output utterance
+    local targetsize = self:dim() * self.seqlen
+    local framewindow = self:dim()
     for i=1,audiofilepaths:size(1) do
         audiofeat = self.wrappedmodule:loadAudioUtterance(audiofilepaths[i],true)
         local origaudiosize = audiofeat:nElement()
-        local framewindow = self:dim()
+
         -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
         local modaudiosize = floor(origaudiosize/framewindow) * framewindow
         -- Try to fit only the seqlen utterances in a whole in
         modaudiosize = floor(modaudiosize/self.seqlen) * self.seqlen
-
-        local targetsize = self:dim() * self.seqlen
         -- If we have more elements as target than in the utterance, we pad. Otherwise no padding is needed , but we truncate the loaded utterance
         if targetsize > modaudiosize then
             local seqtargetsize = floor(targetsize / framewindow)

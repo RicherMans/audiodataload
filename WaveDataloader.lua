@@ -67,10 +67,7 @@ function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
     audiobufpath = audiofilepath
     -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
     if stop > audiobuf:size(1) then
-        local bufsize = stop-start + 1
-        self._buf = self._buf or torch.Tensor()
-        self._buf:resize(bufsize):zero()
-        return self._buf
+        return torch.zeros(stop-start + 1)
     else
         return audiobuf:sub(start,stop)
     end
@@ -85,23 +82,21 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
     -- We only pass a single audiofilepath to this function
     audiofilepath = readfilelabel(audiofilepath)
 
-    self._audioloaded = self._audioloaded or torch.Tensor()
     wholeutt = wholeutt or ( wholeutt ~= nil or false )
-    self._audioloaded = audio.load(audiofilepath)
-    local origaudiosize = self._audioloaded:size(1)
+    local audioloaded = audio.load(audiofilepath)
+    local origaudiosize = audioloaded:size(1)
     -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
     local modaudiosize = floor(origaudiosize/self:dim()) * self:dim()
     -- We trim the output if seqlen is small
     local targetsize = self:dim()
     -- return the whole utterance, for single batch cases
     if wholeutt then targetsize = modaudiosize end
-    self._buf = self._buf or torch.Tensor()
-    self._buf:resize(targetsize):zero()
+    local buf = torch.zeros(targetsize)
 
-    self._buf:sub(1,targetsize):copy(self._audioloaded:sub(1,targetsize))
-    self._buf = self._buf:view(targetsize/self:dim(),self:dim())
+
+    buf:sub(1,targetsize):copy(audioloaded:sub(1,targetsize))
     -- end
-    return self._buf
+    return buf:view(targetsize/self:dim(),self:dim())
 end
 
 -- Iterator callback function
