@@ -254,10 +254,9 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
         stop = curutterance + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(curutterance, stop,audioloader, unpack(dots))}
+        local batch = {self:getUtterances(curutterance, stop, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
-
         curutterance = curutterance + bs
 
         return curutterance - 1, epochsize, unpack(batch)

@@ -1,8 +1,6 @@
 local adl = require 'audiodataload._base'
 local WaveDataloader = torch.class('adl.WaveDataloader', 'adl.BaseDataloader', adl)
 
-require 'audio'
-
 
 local initcheck = argcheck{
     {
@@ -45,14 +43,12 @@ function WaveDataloader:getNumAudioSamples(filename)
 end
 
 function WaveDataloader:__init(...)
-    local path,framesize,shift,seqlen,padding, maxseqlen = initcheck(...)
+    require 'audio'
+    local path,framesize,shift = initcheck(...)
     -- Framesize is the actual dimension of a single sample
     self._dim = framesize
     self.shift = shift
     adl.BaseDataloader.__init(self,path)
-
-    -- self.seqlen = seqlen
-    self.padding = padding
 
 end
 
@@ -123,11 +119,6 @@ function WaveDataloader:getSample(labels,  ids, ...)
     return self._input,self._target
 end
 
-
--- Returns the size of the dataset
-function WaveDataloader:size()
-    return self._nsamples
-end
 
 -- Returns the data dimensions
 function WaveDataloader:dim()

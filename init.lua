@@ -1,6 +1,5 @@
 require 'paths'
 require 'xlua'
-require 'torchx'
 require 'string'
 require 'os'
 require 'sys'
@@ -18,6 +17,7 @@ require 'audiodataload.BaseDataloader'
 require 'audiodataload.WaveDataloader'
 require 'audiodataload.Hdf5iterator'
 require 'audiodataload.Sequenceiterator'
+require 'audiodataload.HtkDataloader'
 
 
 return adl

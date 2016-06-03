@@ -1,8 +1,6 @@
 local adl = require 'audiodataload._base'
 local Hdf5iterator = torch.class('adl.Hdf5iterator', 'adl.BaseDataloader',adl)
 
-local hdf5 = require 'hdf5'
-
 local initcheck = argcheck{
     pack=true,
     {
@@ -25,6 +23,7 @@ local initcheck = argcheck{
 }
 
 function Hdf5iterator:__init(...)
+    hdf5 = require 'hdf5'
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
 

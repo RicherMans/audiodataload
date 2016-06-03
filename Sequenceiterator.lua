@@ -107,12 +107,11 @@ end
 
 
 function Sequenceiterator:loadAudioUtterance(audiofilepaths,...)
-    self._buf = self._buf or torch.Tensor(self.seqlen,audiofilepaths:size(1),self:dim())
-    self._buf:zero()
     local audiofeat
     -- Final size of the output utterance
     local targetsize = self:dim() * self.seqlen
     local framewindow = self:dim()
+    local buf = torch.Tensor(self.seqlen,audiofilepaths:size(1),self:dim())
     for i=1,audiofilepaths:size(1) do
         audiofeat = self.wrappedmodule:loadAudioUtterance(audiofilepaths[i],true)
         local origaudiosize = audiofeat:nElement()
@@ -126,16 +125,16 @@ function Sequenceiterator:loadAudioUtterance(audiofilepaths,...)
             local seqtargetsize = floor(targetsize / framewindow)
             local seqmodaudiosize = floor(modaudiosize / framewindow)
             if self.padding == 'left' then
-                self._buf[{{seqtargetsize-seqmodaudiosize + 1,seqtargetsize},{i}}]:copy(audiofeat:view(origaudiosize):sub(1,seqmodaudiosize* framewindow))
+                buf[{{seqtargetsize-seqmodaudiosize + 1,seqtargetsize},{i}}]:copy(audiofeat:view(origaudiosize):sub(1,seqmodaudiosize* framewindow))
             else
-                self._buf[{{1,seqmodaudiosize},{i}}]:copy(audiofeat:view(origaudiosize):sub(1,seqmodaudiosize*framewindow))
+                buf[{{1,seqmodaudiosize},{i}}]:copy(audiofeat:view(origaudiosize):sub(1,seqmodaudiosize*framewindow))
             end
         else
-            self._buf[{{},{i}}]:copy(audiofeat:view(origaudiosize):sub(1,targetsize))
+            buf[{{},{i}}]:copy(audiofeat:view(origaudiosize):sub(1,targetsize))
         end
     end
 
-    return self._buf
+    return buf
 end
 
 
