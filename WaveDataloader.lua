@@ -98,25 +98,19 @@ end
 -- Iterator callback function
 function WaveDataloader:getSample(labels,  ids, ...)
 
-    self._input = self._input or torch.Tensor()
     --  batchsize X dimension
-    self._input = self._input:resize(labels:size(1),self:dim())
-    -- The Final framesize we gonna extract
-    local framewindow = self:dim()
+    local input = torch.Tensor(labels:size(1),self:dim())
     -- Buffer for audiosample
     local wavesample = nil
-    -- Starting frame
-    local framestart = 1
-    -- ending frame, maximum is the full seqence
-    local frameend = -1
+
+    local startsamples = (self.sampletoclassrange:index(1,ids) - 1) * ( self.shift ) + 1
+    local endsamples = startsamples + self:dim() - 1
     -- Get the current offset for the data
     for i=1,labels:size(1) do
-        framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
-        frameend = framestart+framewindow - 1
-        wavesample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
-        self._input[i]:copy(wavesample)
+        wavesample = self:loadAudioSample(readfilelabel(labels[i]),startsamples[i],endsamples[i],...)
+        input[i]:copy(wavesample)
     end
-    return self._input,self._target
+    return input
 end
 
 

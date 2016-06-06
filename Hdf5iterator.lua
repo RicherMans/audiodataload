@@ -84,10 +84,11 @@ function Hdf5iterator:beforeIter(...)
     self._opencache = hdf5.open(self.filepath,'r')
 end
 
+-- Samples are not extra handled, just use the wrapped classes
 function Hdf5iterator:getSample(labels,  ids, ...)
     return self.module.getSample(self,labels,  ids, ...)
 end
-
+-- Utterances as samples are still obtained from the wrapped modules
 function Hdf5iterator:getUtterance(start,stop, ...)
     return self.module.getUtterance(self,start,stop, ...)
 end

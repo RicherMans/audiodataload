@@ -11,6 +11,8 @@ local modeltester = torch.TestSuite()
 local audioload = paths.dofile('../init.lua')
 
 local tester = torch.Tester()
+ProFi = require 'ProFi'
+
 
 
 function modeltester:init()
@@ -24,17 +26,19 @@ end
 function modeltester:testbatchUtterance()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
-
+    ProFi:start()
     local iter = dataloader:uttiterator(128)
     for i,k,v,t in iter do
 
     end
+    ProFi:stop()
+    ProFi:writeReport('testbatchutterance.txt')
 end
 
 function modeltester:testrandomize()
     local filepath = "train.lst"
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
-
+    ProFi:start()
     local it = dataloader:sampleiterator(128,nil,true)
     for i,k,v,t in it do
         -- tester:assert(i ~= nil)
@@ -42,7 +46,8 @@ function modeltester:testrandomize()
         tester:assert(v ~= nil)
         tester:assert(t ~= nil)
     end
-
+    ProFi:stop()
+    ProFi:writeReport('testrandomize.txt')
 end
 
 function modeltester:testUtteranceSeq()
@@ -59,7 +64,6 @@ function modeltester:testUtteranceSeq()
         tester:assert(t ~= nil)
         -- xlua.progress(i,k)
     end
-    print("Took "..torch.toc(tic))
 end
 
 function modeltester:testUtteranceNoSeq()
@@ -67,7 +71,8 @@ function modeltester:testUtteranceNoSeq()
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local tic = torch.tic()
-    local it = dataloader:uttiterator(1)
+    ProFi:start()
+    local it = dataloader:uttiterator()
     for i,k,v,t in it do
         tester:assert(i ~= nil)
         tester:assert(k ~= nil)
@@ -77,7 +82,8 @@ function modeltester:testUtteranceNoSeq()
         -- xlua.progress(i,k)
         -- print(i,k,v,d)
     end
-    print("Took "..torch.toc(tic))
+    ProFi:stop()
+    ProFi:writeReport('testutterancenoseq.txt')
 end
 
 tester:add(modeltester)

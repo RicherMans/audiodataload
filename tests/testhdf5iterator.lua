@@ -13,6 +13,7 @@ local audioload = paths.dofile('../init.lua')
 
 local tester = torch.Tester()
 
+ProFi = require 'ProFi'
 
 function modeltester:init()
     local filepath = "train.lst"
@@ -27,20 +28,19 @@ function modeltester:iterwavedataloaderrandom()
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
-
+    ProFi:start('hdf5')
     local it = wrapper:sampleiterator(128,nil,true)
     local tic = torch.tic()
     for i,k,v,d in it do
         -- print(i,k,v,d)
     end
-    print("\nHDF took " .. torch.toc(tic))
-
+    ProFi:stop()
     it = dataloader:sampleiterator(128,nil,true)
     tic = torch.tic()
     for i,k,v,d in it do
 
     end
-    print("\nWave took " .. torch.toc(tic))
+    ProFi:writeReport('testwavedataloaderrandomhdf5.txt')
     sys.fexecute("rm myfile2")
 end
 
