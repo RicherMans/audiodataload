@@ -97,7 +97,6 @@ end
 
 -- Iterator callback function
 function WaveDataloader:getSample(labels,  ids, ...)
-
     --  batchsize X dimension
     local input = torch.Tensor(labels:size(1),self:dim())
     -- Buffer for audiosample

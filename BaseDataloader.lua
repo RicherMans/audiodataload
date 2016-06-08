@@ -149,24 +149,25 @@ function BaseDataloader:_readfilename(filename)
 end
 
 function BaseDataloader:subSamples(start,stop, random,... )
+    -- local sampleids = torch.LongTensor(stop-start + 1):range(start,stop)
     self._sampleids = self._sampleids or torch.LongTensor()
     self._sampleids:resize(stop - start + 1):range(start,stop)
 
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,self._sampleids)
+    -- local featids = self.sampletofeatid:index(1,sampleids)
     local labels = self.filelabels:index(1,self._featids)
-    local batchdim = 1
-    -- The Final framesize we gonna extract
-    local framewindow = self:dim()
 
-    self._target = self._target or torch.Tensor()
+    -- self._target = self._target or torch.Tensor()
 
-    self._target = self._target:resize(labels:size(1))
-
+    -- self._target = self._target:resize(labels:size(1))
+    -- assert(self._target:size(1) == self._featids:size(1))
+    local target = torch.Tensor(labels:size(1))
     -- The targets are unaffected by any seqlen
-    self._target:copy(self.targets:index(1,self._featids))
+    -- self._target:copy(self.targets:index(1,self._featids))
+    target:copy(self.targets:index(1,self._featids))
 
-    return self:getSample(labels, self._sampleids ,...),self._target
+    return self:getSample(labels, self._sampleids ,...),target
 end
 
 function BaseDataloader:getUtterances(start,stop, ... )
