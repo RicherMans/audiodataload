@@ -23,7 +23,7 @@ local initcheck = argcheck{
 }
 
 function Hdf5iterator:__init(...)
-    hdf5 = require 'hdf5'
+    hdf5 = hdf5 or require 'hdf5'
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
 
@@ -48,7 +48,7 @@ function Hdf5iterator:__init(...)
             hdf5options:setChunked(self.chunksize)
         end
         for done,finish,input,_,utterancepath in uttiterator do
-            -- Dump into single dimensional array
+            -- Dump into single dimensional array, utterancepath is a table
             hdf5write:write(readfilelabel(utterancepath[1]),input:view(input:nElement()),hdf5options)
         end
         -- reset the hijack
@@ -95,7 +95,6 @@ end
 
 function Hdf5iterator:afterIter(...)
     self._opencache:close()
-    self._opencache = nil
 end
 
 function Hdf5iterator:sampletofeat(samplelengths,...)

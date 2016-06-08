@@ -4,6 +4,7 @@ require 'string'
 require 'os'
 require 'sys'
 ffi = require 'ffi'
+require 'torchx'
 argcheck = require 'argcheck'
 
 -- make unpack visible in global
@@ -18,6 +19,6 @@ require 'audiodataload.WaveDataloader'
 require 'audiodataload.Hdf5iterator'
 require 'audiodataload.Sequenceiterator'
 require 'audiodataload.HtkDataloader'
-
+require 'audiodataload.Asynciterator'
 
 return adl

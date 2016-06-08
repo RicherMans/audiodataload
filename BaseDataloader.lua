@@ -183,7 +183,7 @@ function BaseDataloader:getUtterances(start,stop, ... )
     return self:loadAudioUtterance(labels,true),self._target,labels
 end
 
-function BaseDataloader:sampleiterator(batchsize,epochsize, random,...)
+function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     batchsize = batchsize or 16
     local dots = {...}
     epochsize = epochsize or -1
@@ -216,7 +216,6 @@ function BaseDataloader:sampleiterator(batchsize,epochsize, random,...)
             return
         end
         local bs = min(numsamples+batchsize, epochsize + 1) - numsamples
-
 
         local stop = numsamples + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
