@@ -168,7 +168,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             -- For HtkDataloader
             _htktorch = _htktorch or require 'torchhtk'
             -- For others
-            audiodataload = require "audiodataload"
+            adl = require "audiodataload"
         end,
         function(idx)
             local success, err = pcall(function()
