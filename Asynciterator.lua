@@ -164,11 +164,11 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         self.nthreads, -- the following functions are executed in each thread
         function()
             -- For wavedataloader
-            require 'audio'
+            audio = require 'audio'
             -- For HtkDataloader
-            _htktorch = _htktorch or require 'torchhtk'
+            _htktorch = require 'torchhtk'
             -- For others
-            adl = require "audiodataload"
+            audiodataload = audiodataload or require "audiodataload"
         end,
         function(idx)
             local success, err = pcall(function()
