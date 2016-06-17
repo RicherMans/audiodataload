@@ -6,8 +6,9 @@ Following classes encompass the library:
 
 * [BaseDataloader](#adl.basedataloader) : The base abstract class that should never be directly initiated.
 * [WaveDataloader](#adl.wavedataloader) : A dataloader for raw wave files ( useful for any type of feature extraction with CNN's )
-* [Sequenceiterator](#adl.seqenceiterator) : Wraps a given dataloader to return sequences of samples instead of only single samples. This iterator should be used when using recurrent networks.
-* [Hdf5iterator](#adl.hdfiterator): Wraps the given dataloader with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
+* [Sequenceiterator](#adl.seqenceiterator) : Wraps a given [dataloader](#adl.basedataloader) to return sequences of samples instead of only single samples. This iterator should be used when using recurrent networks.
+* [Hdf5iterator](#adl.hdfiterator): Wraps the given [dataloader](#adl.basedataloader) with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
+* [Asynciterator](#adl.asynciterator): Wraps the given [dataloader](#adl.basedataloader) with an iterator that allows multithreaded processing. This can be beneficial and allows to speed up the loading process, but also uses up a lot more memory.
 
 ```lua
 local audioload = require 'audioload'
@@ -214,3 +215,20 @@ Performs the wrapped module's iteration, but loads the data from the hdf5 file u
 <a name='adl.hdfiterator.uttiterator'></a>
 ### [iterator] uttiterator(batchsize [n], epochsize [n], randomize [false])
 Performs the wrapped module's iteration, but loads the data from the hdf5 file using `all` loading.
+
+<a name='adl.asynciterator'></a>
+## AsyncIterator
+
+This class wraps a given dataload to return consequent samples
+
+### init (module,[ threads [n], serialmode [string]])
+
+Inits the asyncdataloader , where ```module``` needs to be a valid subclass of [basedataloader](#adl.basedataloader). ```serialmode``` specifies the dataformat of the wrapped module which is dumped onto the filesystem. By default this is ``binary``, but can also be changed to ``ascii``.
+
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
+
+Returns samples from the given wrapped around module, but uses a multithreaded execution scheme. The order of returned samples is not guaranteed to be the same as in non multithread iteration.
+
+### [iterator] uttiterator(batchsize [n], epochsize [n], randomize [false])
+
+Not yet implemented ( it is also relatively useless)
