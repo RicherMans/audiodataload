@@ -7,6 +7,7 @@ Following classes encompass the library:
 * [BaseDataloader](#adl.basedataloader) : The base abstract class that should never be directly initiated.
 * [WaveDataloader](#adl.wavedataloader) : A dataloader for raw wave files ( useful for any type of feature extraction with CNN's )
 * [Sequenceiterator](#adl.seqenceiterator) : Wraps a given [dataloader](#adl.basedataloader) to return sequences of samples instead of only single samples. This iterator should be used when using recurrent networks.
+* [Htkiterator](#adl.htkiterator): A dataloader for [HTK](http://www.ee.columbia.edu/ln/LabROSA/doc/HTKBook21/node58.html#SECTION03271000000000000000) formatted features.
 * [Hdf5iterator](#adl.hdfiterator): Wraps the given [dataloader](#adl.basedataloader) with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
 * [Asynciterator](#adl.asynciterator): Wraps the given [dataloader](#adl.basedataloader) with an iterator that allows multithreaded processing. This can be beneficial and allows to speed up the loading process, but also uses up a lot more memory.
 
@@ -100,6 +101,7 @@ WaveDataloader loads features as raw waves from the disk. Features can be access
 
 ### init( filepath, framesize [n] , [ shift [n] ])
 
+* `filepath`: The filepath specifying the feature file containing all the features and corresponding labels.
 * `framesize` : The size for one frame. The initial size into which an utterance is splitted to. E.g. of we have a wave utterance which consists of 1s 16k Hz audio, we obtain `16000` samples. Specifying `framesize` to be 400, we would obtain `16000/400 = 40` different frames. Generally to obtan the number of frames we calculate:
 `floor((audiosize - framesize)/shift + 1)`, whereas `audiosize` is the length of the audiofile and `shift` is the parameter below ( defaults to `framesize`)
 * `shift` : The frameshift between two frames, which enables overlapping between adjacent frames. The default is `framesize` thus no overlapping.
@@ -114,7 +116,7 @@ Returns an iterator to the utterances. The returned utterances are always of siz
 * `batchsize` : This is set to `1` and cannot be used with any other value for `batchsize`. If iterating over batches of utterances is needed, please refer to [Sequenceiterator](#adl.seqenceiterator).
 * `epochsize` : The size of the epoch, via default its `self:usize()` thus being evaluated over all the utterances.
 
-Example to iterate with 1 batchsize ( useful for evaluation of seqences ):
+Example to iterate with 1 batchsize ( useful for evaluation of sequences ):
 
 ```lua
 local traindatawave = audiodataload.WaveDataloader{
@@ -131,7 +133,7 @@ end
 <a name='adl.wavedataloader.sampleiterator'></a>
 ### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
 
-Returns an iterator to single samples of the wavedataset. The output is at most of size `batchsize` and `epochsize` defaults to the dataset's samplesize. If `randimize` is set to be true, it randomizes the input for each iteration.
+Returns an iterator to single samples of the wavedataset. The output is at most of size `batchsize` and `epochsize` defaults to the dataset's samplesize. If `randomize` is set to be true, it randomizes the input for each iteration.
 
 **Note** that this iterator always loads in a full utterance and then cut's it appropriately, meaning that if utterances are very large, this iterator can be very slow. In this case please wrap it with [Hdf5iterator](#adl.hdfiterator).
 
@@ -151,6 +153,32 @@ for done, max, input,target, filepath in sampleiterator do
     -- Do stuff
 end
 ```
+
+<a name='adl.htkdataloader'></a>
+
+## Htkdataloader
+
+A dataloader specifically for HTK extracted features. The dataloader ignores all the extra parameters of the HTK feature and simply loads the data.
+
+### init( filepath )
+
+`filepath`: The filepath specifying the feature file containing all the features and corresponding labels.
+
+<a name='adl.htkdataloader.sampleiterator'></a>
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
+
+Returns an iterator to single samples of the wavedataset. The output is at most of size `batchsize` and `epochsize` defaults to the dataset's samplesize. If `randomize` is set to be true, it randomizes the input for each iteration.
+
+The parameters behave exactly as in the [basedataloader's](#adl.adl.basedataloader.sampleiterator).
+
+<a name='adl.htkdataloader.uttiterator'></a>
+
+### [iterator] uttiterator(batchsize [n], epochsize [n])
+
+Returns an iterator to the utterances. The returned utterances are always of size `nsample * datadim`. `nsample` is the number of samples for each utterance, thus this might wary.
+
+The parameters behave exactly as in the [basedataloader's](#adl.adl.basedataloader.uttiterator).
+
 
 <a name='adl.seqenceiterator'></a>
 
