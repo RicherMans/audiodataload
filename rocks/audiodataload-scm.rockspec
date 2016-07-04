@@ -1,5 +1,5 @@
 package = "audiodataload"
-version = "0.0-1"
+version = "scm"
 
 source = {
    url = "git://github.com/Richermans/audiodataload",
