@@ -17,7 +17,6 @@ local max = math.max
 
 -- used by basedataloader to estimate _nsamples
 function HtkDataloader:getNumAudioSamples(filename)
-    print(_htktorch.loadheader(filename).nsamples)
     return _htktorch.loadheader(filename).nsamples
 end
 
