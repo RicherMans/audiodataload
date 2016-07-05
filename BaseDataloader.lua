@@ -191,7 +191,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     epochsize = epochsize > 0 and epochsize or self:size()
 
     random = random or false
-    local numsamples = 1
+    self._cursample = 1
     if not ( self.sampletofeatid and self.sampletoclassrange ) then
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
     end
@@ -212,20 +212,20 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     -- build iterator
     return function()
-        if numsamples > epochsize then
+        if self._cursample > epochsize then
             self:afterIter(unpack(dots))
             return
         end
-        local bs = min(numsamples+batchsize, epochsize + 1) - numsamples
+        local bs = min(self._cursample+batchsize, epochsize + 1) - self._cursample
 
-        local stop = numsamples + bs - 1
+        local stop = self._cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(numsamples, stop, random, unpack(dots))}
+        local batch = {self:subSamples(self._cursample, stop, random, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
 
-        numsamples = numsamples + bs
-        return numsamples - 1,epochsize, unpack(batch)
+        self._cursample = self._cursample + bs
+        return self._cursample - 1,epochsize, unpack(batch)
     end
 end
 
@@ -235,7 +235,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     local dots = {...}
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:usize()
-    local curutterance = 1
+    self._curutterance = 1
 
     local min = math.min
 
@@ -245,20 +245,25 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     self:beforeIter(unpack(dots))
     -- build iterator
     return function()
-        if curutterance > epochsize then
+        if self._curutterance > epochsize then
             self:afterIter(unpack(dots))
             return
         end
 
-        bs = min(curutterance+batchsize, epochsize + 1 ) - curutterance
+        bs = min(self._curutterance+batchsize, epochsize + 1 ) - self._curutterance
 
-        stop = curutterance + bs - 1
+        stop = self._curutterance + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(curutterance, stop, unpack(dots))}
+        local batch = {self:getUtterances(self._curutterance, stop, unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
-        curutterance = curutterance + bs
+        self._curutterance = self._curutterance + bs
 
-        return curutterance - 1, epochsize, unpack(batch)
+        return self._curutterance - 1, epochsize, unpack(batch)
     end
+end
+-- Resets the current dataloader iterator
+function BaseDataloader:reset()
+   self._curutterance = 1
+   self._cursample = 1
 end
