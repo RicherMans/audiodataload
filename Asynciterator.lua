@@ -12,7 +12,7 @@ local initcheck = argcheck{
         name = "nthreads",
         type= "number",
         help="Number of threads",
-        default = 2,
+        default = 1,
         check= function(num)
             if num > 0 then return true else return false end
         end

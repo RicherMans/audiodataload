@@ -12,13 +12,14 @@ local audioload = paths.dofile('../init.lua')
 
 local tester = torch.Tester()
 
+local filelist = arg[1]
 
 function modeltester:init()
-    local filepath = "train_htk.lst"
+    local filepath = filelist
     local dataloader = audioload.HtkDataloader(filepath)
 end
 function modeltester:testbatchUtterance()
-    local filepath = "train_htk.lst"
+    local filepath = filelist
     local dataloader = audioload.HtkDataloader{path=filepath}
 
     local iter = dataloader:uttiterator()
@@ -30,7 +31,7 @@ function modeltester:testbatchUtterance()
 end
 --
 function modeltester:testrandomize()
-    local filepath = "train_htk.lst"
+    local filepath = filelist
     local dataloader = audioload.HtkDataloader{path=filepath}
     print(dataloader:size())
     local it = dataloader:sampleiterator(128,nil,true)
@@ -77,6 +78,12 @@ end
 --     end
 --     print("Took "..torch.toc(tic))
 -- end
+
+
+if not filelist or filelist == "" then
+    print("Please pass a filelist as first argument")
+    return
+end
 
 tester:add(modeltester)
 tester:run()
