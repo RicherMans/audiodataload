@@ -199,7 +199,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     if random then
         -- Shuffle the list
         local randomids = torch.LongTensor():randperm(self:size())
-
+        -- Apply the randomization
         self.sampletofeatid = self.sampletofeatid:index(1,randomids)
         self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
     end

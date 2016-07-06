@@ -38,10 +38,6 @@ function Asynciterator:__init(...)
     for k,v in pairs(args) do
         self[k] = v
     end
-
-
-
-
     self.recvqueue = torchx.Queue()
     self.ninprogress = 0
 end

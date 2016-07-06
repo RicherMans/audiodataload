@@ -10,6 +10,7 @@ Following classes encompass the library:
 * [Htkiterator](#adl.htkiterator): A dataloader for [HTK](http://www.ee.columbia.edu/ln/LabROSA/doc/HTKBook21/node58.html#SECTION03271000000000000000) formatted features.
 * [Hdf5iterator](#adl.hdfiterator): Wraps the given [dataloader](#adl.basedataloader) with this iterator to not use it's internal loading methods, but uses a preprocessed HDF5 file instead.
 * [Asynciterator](#adl.asynciterator): Wraps the given [dataloader](#adl.basedataloader) with an iterator that allows multithreaded processing. This can be beneficial and allows to speed up the loading process, but also uses up a lot more memory.
+* [Cacheiterator](#adl.cacheiterator): Wraps the given [dataloader](#adl.basedataloader) with an iterator that stores all ( or a subset of ) the utterances/samples within the CPU. This is useful for smaller datasets, where possible dataloads from the harddisk do decrease speed by large.
 
 ```lua
 local audioload = require 'audioload'
@@ -247,7 +248,7 @@ Performs the wrapped module's iteration, but loads the data from the hdf5 file u
 <a name='adl.asynciterator'></a>
 ## AsyncIterator
 
-This class wraps a given dataload to return consequent samples
+This class wraps a given dataload to return consequent samples in parallel execution.
 
 ### init (module,[ threads [n], serialmode [string]])
 
@@ -256,6 +257,23 @@ Inits the asyncdataloader , where ```module``` needs to be a valid subclass of [
 ### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
 
 Returns samples from the given wrapped around module, but uses a multithreaded execution scheme. The order of returned samples is not guaranteed to be the same as in non multithread iteration.
+
+### [iterator] uttiterator(batchsize [n], epochsize [n], randomize [false])
+
+Not yet implemented ( it is also relatively useless)
+
+<a name='adl.cacheiterator'></a>
+## Cacheiterator
+
+This class wraps a given dataload to store all the samples on the CPU. Generally it is not advised to use this method for larger data.
+
+### init (module,[cachesize])
+
+Inits the cacheiterator, where ```module``` needs to be a valid subclass of [basedataloader](#adl.basedataloader). ```cachesize``` specifies the number of samples (for sampleiterator) which are stored in the cache. Defaults to the size of the whole dataset.
+
+### [iterator] sampleiterator(batchsize [n], epochsize [n], randomize [false])
+
+Same as [basedataloader](#adl.basedataloader.sampleiterator)
 
 ### [iterator] uttiterator(batchsize [n], epochsize [n], randomize [false])
 

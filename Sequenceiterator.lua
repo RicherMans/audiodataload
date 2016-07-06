@@ -74,9 +74,7 @@ end
 -- Iterator callback functions
 function Sequenceiterator:getSample(labels,  ids, ...)
 
-    self._input = self._input or torch.Tensor()
-    --  batchsize X dimension
-    self._input = self._input:resize(self.seqlen,labels:size(1),self:dim())
+    local _input = torch.Tensor(self.seqlen,labels:size(1),self:dim())
     -- The Final framesize we gonna extract
     local framewindow = self:dim()
     -- Buffer for audiosample
@@ -99,10 +97,10 @@ function Sequenceiterator:getSample(labels,  ids, ...)
             -- Shift the window to the next
             framestart = framestart + framewindow
             frameend = frameend + framewindow
-            self._input[{{j},{i}}]:copy(sample)
+            _input[{{j},{i}}]:copy(sample)
         end
     end
-    return self._input,self._target
+    return _input
 end
 
 
