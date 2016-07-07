@@ -50,7 +50,7 @@ function modeltester:itersmall()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
     -- Only using 5 utterances to store
-    local cacheiter = audioload.Cacheiterator(dataloader)
+    local cacheiter = audioload.Cacheiterator(dataloader,250)
 
     local tic = torch.tic()
     for s,e,inp,lab in cacheiter:sampleiterator(128) do

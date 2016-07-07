@@ -46,7 +46,6 @@ end
 function Cacheiterator:getSample(labels,ids,...)
 	-- Pass the self as the wrapped modules self, since it contains the 
 	-- Sampletofeat and sampletoclassrange variables
-	local maxid = torch.max(ids)
 	if self._usefullsize and self._cache:index(1,ids):eq(-1):all() then
 		local samples = self.wrappedmodule.getSample(self,labels,ids, ...)
 		-- Store in cache
@@ -58,9 +57,17 @@ function Cacheiterator:getSample(labels,ids,...)
 		--It can happen that subids consists or not a single value 
 		if subids:dim() > 0 and self._cache:index(1,subids):eq(-1):all() then
 			local samples = self.wrappedmodule.getSample(self,labels,ids, ...)
-			-- In case cache has not the same size as the batch
-			self._cache:index(1,subids):copy(samples:index(1,subids))
+			-- In case of cachesize is set to a larger value than the cache
+			if samples:size(1) > self.cachesize then
+				-- In case cache has not the same size as the batch
+				self._cache:index(1,subids):copy(samples:index(1,subids))
+			-- Insert into the cache at the indexes the (sorted) samples subset
+			else
+				self._cache:index(1,subids):copy(samples[{{1,subids:size(1)}}])
+			end
+
 			return samples
+		-- All the values are stored in the cache, just obtain them
 		elseif subids:dim() > 0 then
 			local otherids = ids:maskedSelect(ids:gt(self.cachesize))
 			local otherlabels = labels:index(1,otherids)
