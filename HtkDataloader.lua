@@ -65,7 +65,7 @@ function HtkDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
 end
 
 -- Iterator callback function
-function HtkDataloader:getSample(labels,  ids, ...)
+function HtkDataloader:getSample(labels, ids, ...)
     -- Use a local copy of input to make it thread safe
     local input = torch.Tensor(labels:size(1),self:dim())
     -- The stepsize

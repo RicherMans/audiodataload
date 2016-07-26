@@ -148,26 +148,25 @@ function BaseDataloader:_readfilename(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
-function BaseDataloader:subSamples(start,stop, random,... )
+function BaseDataloader:subSamples(start,stop, randomids,... )
     -- local sampleids = torch.LongTensor(stop-start + 1):range(start,stop)
     self._sampleids = self._sampleids or torch.LongTensor()
     self._sampleids:resize(stop - start + 1):range(start,stop)
-
+    
+    if randomids then
+        self._sampleids = randomids:index(1,self._sampleids)
+    end
+    -- Ids from the file lists
     self._featids = self._featids or torch.LongTensor()
     self._featids = self.sampletofeatid:index(1,self._sampleids)
-    -- local featids = self.sampletofeatid:index(1,sampleids)
+
     local labels = self.filelabels:index(1,self._featids)
 
-    -- self._target = self._target or torch.Tensor()
-
-    -- self._target = self._target:resize(labels:size(1))
-    -- assert(self._target:size(1) == self._featids:size(1))
     local target = torch.Tensor(labels:size(1))
     -- The targets are unaffected by any seqlen
-    -- self._target:copy(self.targets:index(1,self._featids))
     target:copy(self.targets:index(1,self._featids))
 
-    return self:getSample(labels, self._sampleids ,...),target
+    return self:getSample(labels, self._sampleids , randomids, ...),target
 end
 
 function BaseDataloader:getUtterances(start,stop, ... )
@@ -195,21 +194,21 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     if not ( self.sampletofeatid and self.sampletoclassrange ) then
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
     end
-
+    -- RAndomized ids, passed to cacheiterator
+    local randomids
     if random then
         -- Shuffle the list
-        local randomids = torch.LongTensor():randperm(self:size())
+        randomids = torch.LongTensor():randperm(self:size())
         -- Apply the randomization
-        self.sampletofeatid = self.sampletofeatid:index(1,randomids)
-        self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
+        -- self.sampletofeatid = self.sampletofeatid:index(1,randomids)
+        -- self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
     end
 
     local min = math.min
 
-    local inputs, targets
-
     self:beforeIter(unpack(dots))
 
+    local inputs,targets 
     -- build iterator
     return function()
         if self._cursample > epochsize then
@@ -220,12 +219,12 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
         local stop = self._cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(self._cursample, stop, random, unpack(dots))}
-        -- -- allows reuse of inputs and targets buffers for next iteration
-        -- inputs, targets = batch[1], batch[2]
+        local batch = {self:subSamples(self._cursample, stop, randomids, unpack(dots))}
+        -- Reuse buffers
+        inputs,targets = batch[1],batch[2]
 
         self._cursample = self._cursample + bs
-        return self._cursample - 1,epochsize, unpack(batch)
+        return self._cursample - 1,epochsize, inputs, targets
     end
 end
 

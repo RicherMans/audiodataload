@@ -43,7 +43,7 @@ function Cacheiterator:__init(...)
 end
 
 
-function Cacheiterator:getSample(labels,ids,...)
+function Cacheiterator:getSample(labels, ids, randomids, ...)
 	-- Pass the self as the wrapped modules self, since it contains the 
 	-- Sampletofeat and sampletoclassrange variables
 	if self._usefullsize and self._cache:index(1,ids):eq(-1):all() then
@@ -80,7 +80,6 @@ function Cacheiterator:getSample(labels,ids,...)
 		else
 			return self.wrappedmodule.getSample(self,labels,ids, ...)
 		end
-
 		
 	end
 

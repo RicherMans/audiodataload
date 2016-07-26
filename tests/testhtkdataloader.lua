@@ -33,15 +33,30 @@ end
 function modeltester:testrandomize()
     local filepath = filelist
     local dataloader = audioload.HtkDataloader{path=filepath}
-    print(dataloader:size())
-    local it = dataloader:sampleiterator(128,nil,true)
-    for i,k,v,t in it do
-        -- tester:assert(i ~= nil)
-        -- tester:assert(k ~= nil)
-        tester:assert(v ~= nil)
-        tester:assert(t ~= nil)
+
+    local valuetolab = {}
+    local numvalues = 0
+    local tic = torch.tic()
+    for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
+        valuetolab[inp[1][1]] = lab[1]
+        numvalues = numvalues + 1
+        tester:assert(inp:size(1) == lab:size(1))
     end
 
+    -- Emulate some 10 iterations over the data
+    for i=1,10 do
+        local tmpnumvalues = numvalues
+        for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
+            if valuetolab[inp[1][1]] then
+                if valuetolab[inp[1][1]] == lab[1] then
+                    tmpnumvalues = tmpnumvalues - 1
+                end
+            end
+            tester:assert(inp:size(1) == lab:size(1))
+        end
+        tester:assert(tmpnumvalues == 0,"Error in iteration "..i)
+    end
+    
 end
 --
 -- function modeltester:testUtteranceSeq()
