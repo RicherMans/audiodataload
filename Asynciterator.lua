@@ -153,7 +153,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
 
     local mainSeed = os.time()
     -- build a Threads pool, or use the last one initilized
-    self.threads = threads.Threads(
+    self.threads = self.threads or threads.Threads(
         self.nthreads, -- the following functions are executed in each thread
         function()
             -- For wavedataloader
