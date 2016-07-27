@@ -145,12 +145,16 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         -- Shuffle the list
         randomids = torch.LongTensor():randperm(self:size())
     end
+    if verbose then
+        print("Serializing module")
+    end
+    -- local modstr = torch.serialize(self.module, self.serialmode)
 
     local threads = require 'threads'
     -- Threads share the given tensors
+
     threads.Threads.serialization('threads.sharedserialize')
-    
-    local modstr = torch.serialize(self.module, self.serialmode)
+
     local mainSeed = os.time()
     local verbose = self.verbose
     -- build a Threads pool, or use the last one initilized
@@ -175,7 +179,8 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
                 if verbose then
                     print(string.format('Starting worker thread with id: %d seed: %d', idx, seed))
                 end
-                _t.module = torch.deserialize(modstr,self.serialmode)
+                _t.module = self.module
+                -- _t.module = torch.deserialize(modstr,self.serialmode)
             end)
             if not success then
                 error(err)
