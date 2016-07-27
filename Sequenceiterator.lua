@@ -67,6 +67,10 @@ function Sequenceiterator:__init(...)
 
     self._nsamples = numsamples:sum()
 
+    if not self.shift then
+        self.shift = 0
+    end
+
 end
 
 
