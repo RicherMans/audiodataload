@@ -140,13 +140,14 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         self.module.sampletofeatid,self.module.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
     end
 
+    local verbose = self.verbose
     local randomids
     if random then
         -- Shuffle the list
         randomids = torch.LongTensor():randperm(self:size())
     end
     if verbose then
-        print("Serializing module")
+        print("Serializing module. Memory usage %d mb",collectgarbage("count")/1024)
     end
     -- local modstr = torch.serialize(self.module, self.serialmode)
 
@@ -156,7 +157,6 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     threads.Threads.serialization('threads.sharedserialize')
 
     local mainSeed = os.time()
-    local verbose = self.verbose
     -- build a Threads pool, or use the last one initilized
     self.threads = self.threads or threads.Threads(
         self.nthreads, -- the following functions are executed in each thread
@@ -177,7 +177,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
                 torch.setdefaulttensortype('torch.FloatTensor')
                 torch.manualSeed(seed)
                 if verbose then
-                    print(string.format('Starting worker thread with id: %d seed: %d', idx, seed))
+                    print(string.format('Starting worker thread with id: %d seed: %d memory usage: %d mb', idx, seed,collectgarbage("count")/1024))
                 end
                 _t.module = self.module
                 -- _t.module = torch.deserialize(modstr,self.serialmode)
