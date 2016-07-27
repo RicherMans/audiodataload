@@ -224,6 +224,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             local batch = self:asyncGet()
             --  -- we will resend these buffers to the workers next call
             nget = nget + batch.size
+            self:collectgarbage()
             return nget,epochsize, unpack(batch)
         end
         return
