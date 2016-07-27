@@ -80,7 +80,6 @@ function Asynciterator:_putQuene(func,args,size)
     assert(torch.type(func) == 'string')
     assert(torch.type(args) == 'table')
     assert(torch.type(size) == 'number') -- size of batch
-
     for i=1,1000 do
         if self.threads:acceptsjob() then
             break
@@ -141,12 +140,13 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         self.module.sampletofeatid,self.module.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
     end
 
+    local randomids
     if random then
         -- Shuffle the list
-        local randomids = torch.LongTensor():randperm(self:size())
+        randomids = torch.LongTensor():randperm(self:size())
 
-        self.module.sampletofeatid = self.module.sampletofeatid:index(1,randomids)
-        self.module.sampletoclassrange = self.module.sampletoclassrange:index(1,randomids)
+        -- self.module.sampletofeatid = self.module.sampletofeatid:index(1,randomids)
+        -- self.module.sampletoclassrange = self.module.sampletoclassrange:index(1,randomids)
     end
 
     local modstr = torch.serialize(self.module, self.serialmode)
@@ -213,8 +213,9 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             stop = min(self._start + bs - 1,size)
 
             bs = stop - self._start + 1
+
             -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-            local batch = {self:_putQuene('subSamples',{self._start, stop, random, unpack(dots)},bs)}
+            local batch = {self:_putQuene('subSamples',{self._start, stop, randomids, unpack(dots)},bs)}
             -- -- allows reuse of inputs and targets buffers for next iteration
             -- inputs, targets = batch[1], batch[2]
             nput = nput + bs
