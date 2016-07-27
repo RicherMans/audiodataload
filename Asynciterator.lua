@@ -147,7 +147,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         randomids = torch.LongTensor():randperm(self:size())
     end
     if verbose then
-        print("Serializing module. Memory usage %d mb",collectgarbage("count")/1024)
+        print(string.format("Serializing module. Memory usage %d mb",collectgarbage("count")/1024))
     end
     -- local modstr = torch.serialize(self.module, self.serialmode)
 
