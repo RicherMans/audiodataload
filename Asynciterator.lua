@@ -96,16 +96,13 @@ function Asynciterator:_putQuene(func,args,size)
     self.threads:addjob(
         -- the job callback (runs in data-worker thread)
         function()
-            local success, res = pcall(function()
-                -- print("Submitted ",func,"for size ",size)
+            local sucess,res = pcall(function()
+
                 -- func, args and size are upvalues
                 local res = {_t.module[func](_t.module,unpack(args))}
                 res.size = size
                 return res
             end)
-            if not success then
-                error(res)
-            end
             return res
         end,
         -- the endcallback (runs in the main thread)
@@ -149,16 +146,14 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     if verbose then
         print(string.format("Serializing module. Memory usage %d mb",collectgarbage("count")/1024))
     end
-    -- local modstr = torch.serialize(self.module, self.serialmode)
 
     local threads = require 'threads'
     -- Threads share the given tensors
-
     threads.Threads.serialization('threads.sharedserialize')
 
     local mainSeed = os.time()
     -- build a Threads pool, or use the last one initilized
-    self.threads = self.threads or threads.Threads(
+    self.threads = threads.Threads(
         self.nthreads, -- the following functions are executed in each thread
         function()
             -- For wavedataloader
@@ -180,7 +175,6 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
                     print(string.format('Starting worker thread with id: %d seed: %d memory usage: %d mb', idx, seed,collectgarbage("count")/1024))
                 end
                 _t.module = self.module
-                -- _t.module = torch.deserialize(modstr,self.serialmode)
             end)
             if not success then
                 error(err)
@@ -216,7 +210,6 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             stop = min(self._start + bs - 1,size)
 
             bs = stop - self._start + 1
-
             -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
             local batch = {self:_putQuene('subSamples',{self._start, stop, randomids, unpack(dots)},bs)}
             -- -- allows reuse of inputs and targets buffers for next iteration
@@ -230,10 +223,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         if not putmode then
             local batch = self:asyncGet()
             --  -- we will resend these buffers to the workers next call
-            -- previnputs, prevtargets = batch[1], batch[2]
-            -- print("Batches",batch[1]:size(1),batch[2]:size(1))
             nget = nget + batch.size
-            self:collectgarbage()
             return nget,epochsize, unpack(batch)
         end
         return
