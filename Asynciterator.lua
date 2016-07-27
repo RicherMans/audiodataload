@@ -144,15 +144,13 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     if random then
         -- Shuffle the list
         randomids = torch.LongTensor():randperm(self:size())
-
-        -- self.module.sampletofeatid = self.module.sampletofeatid:index(1,randomids)
-        -- self.module.sampletoclassrange = self.module.sampletoclassrange:index(1,randomids)
     end
 
-    local modstr = torch.serialize(self.module, self.serialmode)
-    local threads = threads or require 'threads'
+    local threads = require 'threads'
     -- Threads share the given tensors
     threads.Threads.serialization('threads.sharedserialize')
+    
+    local modstr = torch.serialize(self.module, self.serialmode)
     local mainSeed = os.time()
     local verbose = self.verbose
     -- build a Threads pool, or use the last one initilized
@@ -160,9 +158,9 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         self.nthreads, -- the following functions are executed in each thread
         function()
             -- For wavedataloader
-            audio = require 'audio'
+            audio = audio or require 'audio'
             -- For HtkDataloader
-            _htktorch = require 'torchhtk'
+            _htktorch = _htktorch or require 'torchhtk'
             -- For others
             audiodataload = audiodataload or require "audiodataload"
         end,
