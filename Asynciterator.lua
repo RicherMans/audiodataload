@@ -40,6 +40,43 @@ function Asynciterator:__init(...)
     end
     self.recvqueue = torchx.Queue()
     self.ninprogress = 0
+
+    self.module.sampletofeatid, self.module.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
+
+    local threads = require 'threads'
+    -- Threads share the given tensors
+    threads.Threads.serialization('threads.sharedserialize')
+
+    local mainSeed = os.time()
+     -- build a Threads pool, or use the last one initilized
+    self.threads = threads.Threads(
+        self.nthreads, -- the following functions are executed in each thread
+        function()
+            -- For wavedataloader
+            audio = audio or require 'audio'
+            -- For HtkDataloader
+            _htktorch = _htktorch or require 'torchhtk'
+            -- For others
+            audiodataload = audiodataload or require "audiodataload"
+        end,
+        function(idx)
+            local success, err = pcall(function()
+                _t = {}
+                _t.id = idx
+                local seed = mainSeed + idx
+                math.randomseed(seed)
+                torch.setdefaulttensortype('torch.FloatTensor')
+                torch.manualSeed(seed)
+                if self.verbose then
+                    print(string.format('Starting worker thread with id: %d seed: %d memory usage: %d mb', idx, seed,collectgarbage("count")/1024))
+                end
+                _t.module = self.module
+            end)
+            if not success then
+                error(err)
+            end
+        end
+    )
 end
 
 function Asynciterator:forceCollectGarbage()
@@ -96,13 +133,9 @@ function Asynciterator:_putQuene(func,args,size)
     self.threads:addjob(
         -- the job callback (runs in data-worker thread)
         function()
-            local sucess,res = pcall(function()
-
-                -- func, args and size are upvalues
-                local res = {_t.module[func](_t.module,unpack(args))}
-                res.size = size
-                return res
-            end)
+            -- func, args and size are upvalues
+            local res = {_t.module[func](_t.module,unpack(args))}
+            res.size = size
             return res
         end,
         -- the endcallback (runs in the main thread)
@@ -133,54 +166,12 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     epochsize = epochsize > 0 and epochsize or self:size()
 
     random = random or false
-    if not ( self.sampletofeatid and self.sampletoclassrange ) then
-        self.module.sampletofeatid,self.module.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
-    end
 
-    local verbose = self.verbose
     local randomids
     if random then
         -- Shuffle the list
         randomids = torch.LongTensor():randperm(self:size())
     end
-    if verbose then
-        print(string.format("Serializing module. Memory usage %d mb",collectgarbage("count")/1024))
-    end
-
-    local threads = require 'threads'
-    -- Threads share the given tensors
-    threads.Threads.serialization('threads.sharedserialize')
-
-    local mainSeed = os.time()
-    -- build a Threads pool, or use the last one initilized
-    self.threads = self.threads or threads.Threads(
-        self.nthreads, -- the following functions are executed in each thread
-        function()
-            -- For wavedataloader
-            audio = audio or require 'audio'
-            -- For HtkDataloader
-            _htktorch = _htktorch or require 'torchhtk'
-            -- For others
-            audiodataload = audiodataload or require "audiodataload"
-        end,
-        function(idx)
-            local success, err = pcall(function()
-                _t = {}
-                _t.id = idx
-                local seed = mainSeed + idx
-                math.randomseed(seed)
-                torch.setdefaulttensortype('torch.FloatTensor')
-                torch.manualSeed(seed)
-                if verbose then
-                    print(string.format('Starting worker thread with id: %d seed: %d memory usage: %d mb', idx, seed,collectgarbage("count")/1024))
-                end
-                _t.module = self.module
-            end)
-            if not success then
-                error(err)
-            end
-        end
-    )
 
     local min = math.min
 

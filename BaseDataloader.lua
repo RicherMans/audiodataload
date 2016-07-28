@@ -149,7 +149,6 @@ function BaseDataloader:_readfilename(filename)
 end
 
 function BaseDataloader:subSamples(start,stop, randomids,... )
-    -- local sampleids = torch.LongTensor(stop-start + 1):range(start,stop)
     self._sampleids = self._sampleids or torch.LongTensor()
     self._sampleids:resize(stop - start + 1):range(start,stop)
     
@@ -190,11 +189,10 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     epochsize = epochsize > 0 and epochsize or self:size()
 
     random = random or false
-    self._cursample = 1
     if not ( self.sampletofeatid and self.sampletoclassrange ) then
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
     end
-    -- RAndomized ids, passed to cacheiterator
+    -- Randomized ids, passed to cacheiterator
     local randomids
     if random then
         -- Shuffle the list
@@ -208,23 +206,24 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     self:beforeIter(unpack(dots))
 
+    local cursample = 1
     local inputs,targets 
     -- build iterator
     return function()
-        if self._cursample > epochsize then
+        if cursample > epochsize then
             self:afterIter(unpack(dots))
             return
         end
-        local bs = min(self._cursample+batchsize, epochsize + 1) - self._cursample
+        local bs = min(cursample+batchsize, epochsize + 1) - cursample
 
-        local stop = self._cursample + bs - 1
+        local stop = cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(self._cursample, stop, randomids, unpack(dots))}
+        local batch = {self:subSamples(cursample, stop, randomids, unpack(dots))}
         -- Reuse buffers
         inputs,targets = batch[1],batch[2]
 
-        self._cursample = self._cursample + bs
-        return self._cursample - 1,epochsize, inputs, targets
+        cursample = cursample + bs
+        return cursample - 1,epochsize, inputs, targets
     end
 end
 
@@ -264,5 +263,5 @@ end
 -- Resets the current dataloader iterator
 function BaseDataloader:reset()
    self._curutterance = 1
-   self._cursample = 1
+   -- self._cursample = 1
 end

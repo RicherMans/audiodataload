@@ -67,6 +67,7 @@ function Sequenceiterator:__init(...)
 
     self._nsamples = numsamples:sum()
 
+    -- Wave data iterator has shift, otherwise just set it to zero
     if not self.shift then
         self.shift = 0
     end
