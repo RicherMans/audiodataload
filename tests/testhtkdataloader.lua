@@ -37,26 +37,46 @@ function modeltester:testrandomize()
     local valuetolab = {}
     local numvalues = 0
     local tic = torch.tic()
+    local labcount = torch.zeros(dataloader:nClasses())
     for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
         valuetolab[inp[1][1]] = lab[1]
         numvalues = numvalues + 1
+        labcount[lab[1]] = labcount[lab[1]] + 1
         tester:assert(inp:size(1) == lab:size(1))
     end
+
+    tester:assert(labcount:sum() == dataloader:size())
 
     -- Emulate some 10 iterations over the data
     for i=1,10 do
         local tmpnumvalues = numvalues
+        local tmplabcount = labcount:clone()
         for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
             if valuetolab[inp[1][1]] then
                 if valuetolab[inp[1][1]] == lab[1] then
                     tmpnumvalues = tmpnumvalues - 1
                 end
             end
+            tmplabcount[lab[1]] = tmplabcount[lab[1]] -1
             tester:assert(inp:size(1) == lab:size(1))
         end
-        tester:assert(tmpnumvalues == 0,"Error in iteration "..i)
+        tester:eq(tmplabcount,torch.zeros(dataloader:nClasses()),"Labels are not the same in iteration "..i)
+        tester:assert(tmpnumvalues == 0,"Error in iteration "..i.. " difference is "..tmpnumvalues)
     end
     
+end
+
+function modeltester:testsize()
+    local dataloader = audioload.HtkDataloader{path=filelist}
+    local size = dataloader:size()
+    -- Simulate 3 iterations over the dataset
+    for i=1,3 do
+        local numsamples = 0
+        for _ in dataloader:sampleiterator(1,nil,true) do
+            numsamples = numsamples + 1
+        end
+        tester:assert(size == numsamples)
+    end
 end
 --
 -- function modeltester:testUtteranceSeq()

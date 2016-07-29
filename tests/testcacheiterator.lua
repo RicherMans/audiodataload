@@ -28,7 +28,7 @@ function modeltester:init()
     local dataloader = audioload.HtkDataloader(filepath)
     audioload.Cacheiterator(dataloader,2)
 end
-function modeltester:iterfull()
+function modeltester:randomizedtest()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
     local cacheiter = audioload.Cacheiterator(dataloader)

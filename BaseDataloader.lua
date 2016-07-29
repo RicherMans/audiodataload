@@ -149,23 +149,21 @@ function BaseDataloader:_readfilename(filename)
 end
 
 function BaseDataloader:subSamples(start,stop, randomids,... )
-    self._sampleids = self._sampleids or torch.LongTensor()
-    self._sampleids:resize(stop - start + 1):range(start,stop)
-    
+    local sampleids = torch.LongTensor()
+    sampleids:resize(stop - start):range(start,stop-1)
     if randomids then
-        self._sampleids = randomids:index(1,self._sampleids)
+        sampleids = randomids:index(1,sampleids)
     end
     -- Ids from the file lists
-    self._featids = self._featids or torch.LongTensor()
-    self._featids = self.sampletofeatid:index(1,self._sampleids)
+    local featids = self.sampletofeatid:index(1,sampleids)
 
-    local labels = self.filelabels:index(1,self._featids)
+    local labels = self.filelabels:index(1,featids)
 
     local target = torch.Tensor(labels:size(1))
     -- The targets are unaffected by any seqlen
-    target:copy(self.targets:index(1,self._featids))
+    target:copy(self.targets:index(1,featids))
 
-    return self:getSample(labels, self._sampleids , randomids, ...),target
+    return self:getSample(labels, sampleids , randomids, ...),target
 end
 
 function BaseDataloader:getUtterances(start,stop, ... )
@@ -198,8 +196,6 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         -- Shuffle the list
         randomids = torch.LongTensor():randperm(self:size())
         -- Apply the randomization
-        -- self.sampletofeatid = self.sampletofeatid:index(1,randomids)
-        -- self.sampletoclassrange = self.sampletoclassrange:index(1,randomids)
     end
 
     local min = math.min
@@ -214,16 +210,17 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
             self:afterIter(unpack(dots))
             return
         end
+        -- epochsize +1 to let the cursample >epochsize trigger after that frame. 
         local bs = min(cursample+batchsize, epochsize + 1) - cursample
 
-        local stop = cursample + bs - 1
+        local stop = cursample + bs 
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
         local batch = {self:subSamples(cursample, stop, randomids, unpack(dots))}
         -- Reuse buffers
         inputs,targets = batch[1],batch[2]
 
         cursample = cursample + bs
-        return cursample - 1,epochsize, inputs, targets
+        return cursample,epochsize, inputs, targets
     end
 end
 

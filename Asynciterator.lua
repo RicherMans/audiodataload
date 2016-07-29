@@ -136,6 +136,9 @@ function Asynciterator:_putQuene(func,args,size)
             -- func, args and size are upvalues
             local res = {_t.module[func](_t.module,unpack(args))}
             res.size = size
+            local start,stop = unpack(args)
+            res.start = start
+            res.stop=stop
             return res
         end,
         -- the endcallback (runs in the main thread)
@@ -175,40 +178,38 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
 
     local min = math.min
 
-    local nput = 0 -- currently in queune
-    local nget = 0 -- overall sampled
+    local nput = 1 -- currently in queune
+    local nget = 1 -- overall sampled
     local inputs, targets
-
-    self._start = self._start or 1 -- Start index for multiple threads
 
     self:beforeIter(unpack(dots))
 
     local putmode = true
     local size = self:size()
     local stop
+    local start = 1
 
 
     -- build iterator
     local iterate = function()
         -- finish if
-        if nget >= epochsize then
+        if nget > epochsize then
             self:afterIter(unpack(dots))
             return
         end
-        if nput < epochsize then
-            local bs = min(nput+batchsize, epochsize + 1) - nput
+        if nput <= epochsize then
+            local bs = min(nput+batchsize , epochsize + 1 ) - nput
 
-            stop = min(self._start + bs - 1,size)
-
-            bs = stop - self._start + 1
+            stop = start + bs 
+            -- print("Starting with ",start,stop,"size:",bs)
             -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-            local batch = {self:_putQuene('subSamples',{self._start, stop, randomids, unpack(dots)},bs)}
+            local batch = {self:_putQuene('subSamples',{start, stop, randomids, unpack(dots)},bs)}
             -- -- allows reuse of inputs and targets buffers for next iteration
             -- inputs, targets = batch[1], batch[2]
             nput = nput + bs
-            self._start = self._start + bs
-            if self._start >= size then
-                self._start = 1
+            start = start + bs
+            if start > size then
+                start = 1
             end
         end
         if not putmode then
@@ -216,7 +217,8 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             --  -- we will resend these buffers to the workers next call
             nget = nget + batch.size
             self:collectgarbage()
-            return nget,epochsize, unpack(batch)
+            -- print(batch.start,batch.stop,nget,nput,epochsize)
+            return nget - 1 , epochsize, unpack(batch)
         end
         return
     end
