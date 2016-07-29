@@ -111,7 +111,7 @@ function modeltester:randomizedtest()
     local starttovalue = {}
     local labcount = torch.zeros(asynciter:nClasses())
     print("Init sampleiterator")
-    for s,e,inp,lab in asynciter:sampleiterator(1,nil) do
+    for s,e,inp,lab in asynciter:sampleiterator(1,nil,true) do
         valuetolab[inp[1][1]] = lab[1]
         valuetoidx[inp[1][1]] = s
         labcount[lab[1]] = labcount[lab[1]] + 1
