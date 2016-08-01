@@ -39,6 +39,7 @@ local audiobufpath = nil
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function HtkDataloader:loadAudioSample(audiofilepath,start,stop,...)
     if not (audiofilepath == audiobufpath) then
+        print(__threadid," Change")
         htkbuf = _htktorch.load(audiofilepath)
         htkbuf = htkbuf:view(htkbuf:nElement())
     end
@@ -68,7 +69,6 @@ function HtkDataloader:getSample(labels, ids, ...)
     -- Use a local copy of input to make it thread safe
     tic = torch.tic()
     local input = torch.Tensor(labels:size(1),self:dim())
-
     -- The stepsize
     local framewindow = self:dim()
     -- Buffer for audiosample
@@ -77,15 +77,15 @@ function HtkDataloader:getSample(labels, ids, ...)
     local framestart = 1
     -- ending frame, maximum is the full seqence
     local frameend = -1
-
-    local t11,t22 = 0 ,0
     -- Get the current offset for the data
     for i=1,labels:size(1) do
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( framewindow ) + 1
         frameend = framestart+framewindow - 1
+
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         input[i]:copy(sample)
     end
+    print("returned ",__threadid)
     return input
 end
 
