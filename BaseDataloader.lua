@@ -159,18 +159,12 @@ function BaseDataloader:subSamples(sampleids, ... )
     return self:getSample(labels, sampleids, ...),target:view(target:nElement())
 end
 
-function BaseDataloader:getUtterances(start,stop, ... )
-    self._utteranceids = self._utteranceids or torch.LongTensor()
-    self._utteranceids:resize(stop-start+1):range(start,stop)
+function BaseDataloader:getUtterances(uttids, ... )
+    local labels = self.filelabels:index(1,uttids)
 
-    local numbatches = self._utteranceids:size(1)
-    local labels = self.filelabels:index(1,self._utteranceids)
+    local target = self.targets:index(1,uttids)
 
-    self._target = self._target or torch.Tensor()
-
-    self._target = self._target:resize(numbatches):copy(self.targets:index(1,self._utteranceids))
-
-    return self:loadAudioUtterance(labels,true),self._target,labels
+    return self:loadAudioUtterance(labels,true),target,labels
 end
 
 function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
@@ -210,7 +204,6 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         bs = min(cursample+batchsize, epochsize + 1) - cursample
 
         stop = cursample + bs
-        local tic = torch.tic()
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
         batch = {self:subSamples(sampleids[{{cursample,stop-1}}], unpack(dots))}
 
@@ -220,7 +213,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 end
 
 -- Iterator which returns whole utterances batched
-function BaseDataloader:uttiterator(batchsize,epochsize, ... )
+function BaseDataloader:uttiterator(batchsize,epochsize, random , ... )
     batchsize = batchsize or 1
     local dots = {...}
     epochsize = epochsize or -1
@@ -230,6 +223,16 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     local min = math.min
 
     local inputs, targets , bs, stop
+
+    random = random or false
+    local uttids
+    if random then
+        -- Shuffle the list
+        -- Apply the randomization
+        uttids = torch.randperm(self:usize()):long()
+    else
+        uttids = torch.range(1,self:usize()):long()
+    end
 
     self:beforeIter(unpack(dots))
     -- build iterator
@@ -243,7 +246,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
         stop = self._curutterance + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(self._curutterance, stop, unpack(dots))}
+        local batch = {self:getUtterances(uttids[{{self._curutterance,stop}}], unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
         self._curutterance = self._curutterance + bs

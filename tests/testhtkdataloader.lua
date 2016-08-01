@@ -109,6 +109,19 @@ function modeltester:testloadAudioSample()
     -- print(dataloader:loadAudioSample(feat,39,40))
     -- dataloader:loadAudioSample
 end
+
+function modeltester:testusize()
+    local dataloader = audioload.HtkDataloader{path=filelist}
+    local size = dataloader:usize()
+    -- Simulate 3 iterations over the dataset
+    for i=1,3 do
+        local numutts = 0
+        for _ in dataloader:uttiterator() do
+            numutts = numutts + 1
+        end
+        tester:assert(size == numutts)
+    end
+end
 --
 -- function modeltester:testUtteranceSeq()
 --     local filepath = "train.lst"

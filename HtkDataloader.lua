@@ -61,7 +61,6 @@ end
 -- Iterator callback function
 function HtkDataloader:getSample(labels, ids, ...)
     -- Use a local copy of input to make it thread safe
-    tic = torch.tic()
     local input = torch.Tensor(labels:size(1),self:dim())
     -- The stepsize
     local framewindow = self:dim()
