@@ -34,15 +34,10 @@ function HtkDataloader:__init(...)
 end
 
 
-local htkbuf = nil
-local audiobufpath = nil
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function HtkDataloader:loadAudioSample(audiofilepath,start,stop,...)
-    if not (audiofilepath == audiobufpath) then
-        htkbuf = _htktorch.load(audiofilepath)
-        htkbuf = htkbuf:view(htkbuf:nElement())
-    end
-    audiobufpath = audiofilepath
+    local htkbuf = _htktorch.load(audiofilepath)
+    htkbuf = htkbuf:view(htkbuf:nElement())
     -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
     if stop > htkbuf:size(1) then
         return torch.zeros(stop-start + 1)

@@ -47,7 +47,6 @@ function Asynciterator:__init(...)
     -- Threads share the given tensors
     threads.Threads.serialization('threads.sharedserialize')
 
-    local modstr = torch.serialize(self.module)
     local mainSeed = os.time()
      -- build a Threads pool, or use the last one initilized
     self.threads = threads.Threads(
@@ -71,8 +70,7 @@ function Asynciterator:__init(...)
                 if self.verbose then
                     print(string.format('Starting worker thread with id: %d seed: %d memory usage: %d mb', idx, seed,collectgarbage("count")/1024))
                 end
-                _t.module = torch.deserialize(modstr)
-                -- _t.module = self.module
+                _t.module = self.module
             end)
             if not success then
                 error(err)
