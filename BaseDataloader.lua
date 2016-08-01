@@ -203,9 +203,9 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         -- epochsize +1 to let the cursample >epochsize trigger after that frame. 
         bs = min(cursample+batchsize, epochsize + 1) - cursample
 
-        stop = cursample + bs
+        stop = cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        batch = {self:subSamples(sampleids[{{cursample,stop-1}}], unpack(dots))}
+        batch = {self:subSamples(sampleids[{{cursample,stop}}], unpack(dots))}
 
         cursample = cursample + bs
         return cursample - 1,epochsize, unpack(batch)

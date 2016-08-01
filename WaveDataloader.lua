@@ -97,11 +97,13 @@ function WaveDataloader:getSample(labels,  ids, ...)
     -- Buffer for audiosample
     local wavesample = nil
 
-    local startsamples = (self.sampletoclassrange:index(1,ids) - 1) * ( self.shift ) + 1
-    local endsamples = startsamples + self:dim() - 1
+    local startsample = 0
+    local endsample = 0
     -- Get the current offset for the data
     for i=1,labels:size(1) do
-        wavesample = self:loadAudioSample(readfilelabel(labels[i]),startsamples[i],endsamples[i],...)
+        startsample = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
+        endsample = startsample + self:dim() - 1
+        wavesample = self:loadAudioSample(readfilelabel(labels[i]),startsample,endsample,...)
         input[i]:copy(wavesample)
     end
     return input
