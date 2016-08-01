@@ -151,7 +151,7 @@ end
 function BaseDataloader:subSamples(sampleids, ... )
     -- Ids from the file lists
     local featids = self.sampletofeatid:index(1,sampleids)
-
+    -- Labels are passed to the getsample to obtain the datavector
     local labels = self.filelabels:index(1,featids)
 
     local target = self.targets:index(1,featids)
@@ -164,7 +164,7 @@ function BaseDataloader:getUtterances(uttids, ... )
 
     local target = self.targets:index(1,uttids)
 
-    return self:loadAudioUtterance(labels,true),target,labels
+    return self:loadAudioUtterance(labels,true),target:view(target:nElement()),labels
 end
 
 function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
@@ -193,7 +193,6 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     local stop,bs = 0,0
     local cursample = 1
-    local batch
     -- build iterator
     return function()
         if cursample > epochsize then
@@ -205,7 +204,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
         stop = cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        batch = {self:subSamples(sampleids[{{cursample,stop}}], unpack(dots))}
+        local batch = {self:subSamples(sampleids[{{cursample,stop}}], unpack(dots))}
 
         cursample = cursample + bs
         return cursample - 1,epochsize, unpack(batch)
@@ -245,6 +244,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, random , ... )
         bs = min(self._curutterance+batchsize, epochsize + 1 ) - self._curutterance
 
         stop = self._curutterance + bs - 1
+        print(self._curutterance,stop,epochsize)
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
         local batch = {self:getUtterances(uttids[{{self._curutterance,stop}}], unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration

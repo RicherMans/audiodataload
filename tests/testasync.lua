@@ -107,7 +107,7 @@ end
 function modeltester:benchmark()
     local filepath = wavefilelist
     local dataloader = audioload.WaveDataloader(filepath,100)
-    local asyncdata = audioload.Asynciterator(dataloader,3)
+    local asyncdata = audioload.Asynciterator(dataloader,4)
 
     local bsizes = {1,10,128}
     for k,bs in pairs(bsizes) do
@@ -128,7 +128,7 @@ function modeltester:benchmark()
     end
 
     dataloader = audioload.HtkDataloader(htkfilelist)
-    asyncdata = audioload.Asynciterator(dataloader,3)
+    asyncdata = audioload.Asynciterator(dataloader,4)
     local bsizes = {1,10,128}
     for k,bs in pairs(bsizes) do
         local rawtime, asynctime = 0,0

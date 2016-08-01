@@ -12,15 +12,16 @@ local audioload = paths.dofile('../init.lua')
 
 local tester = torch.Tester()
 
+local filelist = arg[1]
 
 function modeltester:init()
-    local filepath = "train.lst"
+    local filepath = filelist
     local dataloader = audioload.WaveDataloader(filepath,100)
     audioload.Sequenceiterator(dataloader,5)
 end
 
 function modeltester:sampleiter()
-    local filepath = "train.lst"
+    local filepath = filelist
     local seqlenth = 50
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
@@ -34,7 +35,7 @@ function modeltester:sampleiter()
 end
 
 function modeltester:sampleiterlarge()
-    local filepath = "train.lst"
+    local filepath = filelist
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength =true}
@@ -47,7 +48,7 @@ function modeltester:sampleiterlarge()
 end
 
 function modeltester:uttiter()
-    local filepath = "train.lst"
+    local filepath = filelist
     local seqlenth = 50
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
@@ -63,7 +64,7 @@ function modeltester:uttiter()
 end
 
 function modeltester:uttiterlarge()
-    local filepath = "train.lst"
+    local filepath = filelist
     local framesize = 500
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator(dataloader,1,true)
@@ -76,7 +77,7 @@ function modeltester:uttiterlarge()
     print("\n"..torch.toc(tic))
 end
 function modeltester:uttiterfull()
-    local filepath = "train.lst"
+    local filepath = filelist
     local framesize = 200
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
@@ -88,7 +89,10 @@ function modeltester:uttiterfull()
     end
     print("\n"..torch.toc(tic))
 end
-
+if not filelist or filelist == "" then
+    print("Please pass a wave filelist as first argument")
+    return
+end
 
 tester:add(modeltester)
 tester:run()

@@ -122,6 +122,17 @@ function modeltester:testusize()
         tester:assert(size == numutts)
     end
 end
+
+function modeltester:testdifferentbatchsize()
+    local batches = {1,32,64,128,256,512,1024}
+    local dataloader = audioload.HtkDataloader{path=filelist}
+    -- Just test if any error happen
+    for i=1,#batches do
+        for s,e,k,v in dataloader:sampleiterator(batches[i],nil,true)do
+
+        end
+    end
+end
 --
 -- function modeltester:testUtteranceSeq()
 --     local filepath = "train.lst"

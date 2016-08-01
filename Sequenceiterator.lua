@@ -96,7 +96,6 @@ function Sequenceiterator:getSample(labels,  ids, ...)
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
         frameend = framestart+framewindow - 1
         curlabel = readfilelabel(labels[i])
-        local tic = torch.tic()
         for j=1,self.seqlen do
             sample = self.wrappedmodule:loadAudioSample(curlabel,framestart,frameend,...)
             -- Shift the window to the next
