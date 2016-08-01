@@ -83,7 +83,6 @@ function HtkDataloader:getSample(labels, ids, ...)
     for i=1,labels:size(1) do
         framestart = (self.sampletoclassrange[ids[i]] - 1) * ( framewindow ) + 1
         frameend = framestart+framewindow - 1
-        print(framestart,frameend)
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         input[i]:copy(sample)
     end
