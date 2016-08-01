@@ -155,6 +155,7 @@ function modeltester:randomizedtest()
             end
             tester:assert(inp:size(1) == lab:size(1))
         end
+        print("Iteration "..i.." done")  
         tester:eq(tmplabcount,torch.zeros(asynciter:nClasses()),"Labels are not the same in iteration "..i)
         
         -- pick 4 as a valid number of unchanged indices

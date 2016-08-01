@@ -80,26 +80,66 @@ function modeltester:testRandomize()
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
     valuetolab={}
     numvalues = 0
-    local tic = torch.tic()
-    for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
+    local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+    local sampletoclass = torch.Tensor(dataloader:size())
+    for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
         valuetolab[inp[1][1]] = lab[1]
         numvalues = numvalues + 1
         tester:assert(inp:size(1) == lab:size(1))
+        sampletoclass[s-1] = lab[1]
+        local addone = torch.Tensor(lab:size(1)):fill(1)
+        classsizes:indexAdd(1,lab:long(),addone)
+    end
+    -- Check if we only have unique values 
+    local uniquevalues = 0
+    for k,v in pairs(valuetolab) do
+        uniquevalues = uniquevalues + 1
     end
 
-    -- Emulate some 10 iterations over the data
-    for i=1,10 do
-        local tmpnumvalues = numvalues
+    if uniquevalues ~= numvalues then 
+        print("Error, values are not unique. Just a warning, nothing special.  ".. uniquevalues .."/"..numvalues)
+    end
+    tester:assert(classsizes:sum()==dataloader:size())
+
+    local randomizetol = math.ceil(dataloader:size()/2)
+    -- Emulate some 5 iterations over the data
+    for i=1,5 do
+        local randomized = 0
+        local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
         for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
-            if valuetolab[inp[1][1]] then
-                if valuetolab[inp[1][1]] == lab[1] then
-                    tmpnumvalues = tmpnumvalues - 1
-                end
+            if sampletoclass[s-1] ~= lab[1] then
+                randomized = randomized + 1
             end
+            local addone = torch.Tensor(lab:size(1)):fill(1)
+            tmpclasssizes:indexAdd(1,lab:long(),addone)
             tester:assert(inp:size(1) == lab:size(1))
         end
-        tester:assert(tmpnumvalues == 0,"Error in iteration "..i)
+        tester:eq(tmpclasssizes,classsizes)
+        tester:assert(randomized ~= 0 and randomized > randomizetol,"Randomization not done correctly")
     end
+end
+
+function modeltester:testnonrandomizedsamples()
+    local filepath = filelist
+    local dataloader = audioload.WaveDataloader(filepath,100)
+    local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+
+
+    local batchsize = 128
+    for s,e,k,v in dataloader:sampleiterator(batchsize) do
+        local addone = torch.Tensor(v:size(1)):fill(1)
+        classsizes:indexAdd(1,v:long(),addone)
+    end
+    tester:assert(classsizes:sum()==dataloader:size())
+    for i=1,3 do
+        local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
+        for s,e,k,v in dataloader:sampleiterator(batchsize) do
+            local addone = torch.Tensor(v:size(1)):fill(1)
+            tmpclasssizes:indexAdd(1,v:long(),addone)
+        end
+        tester:eq(tmpclasssizes,classsizes)
+    end
+
 end
 
 if not filelist or filelist == "" then

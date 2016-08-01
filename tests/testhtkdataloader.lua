@@ -29,6 +29,28 @@ function modeltester:testbatchUtterance()
         tester:assert(torch.isTensor(v))
     end
 end
+function modeltester:testnonrandomizedsamples()
+    local filepath = filelist
+    local dataloader = audioload.HtkDataloader(filepath)
+    local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+
+    local batchsize = 128
+    for s,e,k,v in dataloader:sampleiterator(batchsize) do
+        local addone = torch.Tensor(v:size(1)):fill(1)
+        classsizes:indexAdd(1,v:long(),addone)
+    end
+    tester:assert(classsizes:sum()==dataloader:size())
+    for i=1,3 do
+        local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
+        for s,e,k,v in dataloader:sampleiterator(batchsize) do
+            local addone = torch.Tensor(v:size(1)):fill(1)
+            tmpclasssizes:indexAdd(1,v:long(),addone)
+        end
+        tester:eq(tmpclasssizes,classsizes)
+    end
+
+end
+
 --
 function modeltester:testrandomize()
     local filepath = filelist
@@ -47,8 +69,8 @@ function modeltester:testrandomize()
 
     tester:assert(labcount:sum() == dataloader:size())
 
-    -- Emulate some 10 iterations over the data
-    for i=1,10 do
+    -- Emulate some 5 iterations over the data
+    for i=1,5 do
         local tmpnumvalues = numvalues
         local tmplabcount = labcount:clone()
         for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do

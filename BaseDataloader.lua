@@ -148,22 +148,16 @@ function BaseDataloader:_readfilename(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
-function BaseDataloader:subSamples(start,stop, randomids,... )
-    local sampleids = torch.LongTensor()
-    sampleids:resize(stop - start):range(start,stop-1)
-    if randomids then
-        sampleids = randomids:index(1,sampleids)
-    end
+function BaseDataloader:subSamples(sampleids, ... )
     -- Ids from the file lists
+    local tic = torch.tic()
     local featids = self.sampletofeatid:index(1,sampleids)
 
     local labels = self.filelabels:index(1,featids)
 
-    local target = torch.Tensor(labels:size(1))
-    -- The targets are unaffected by any seqlen
-    target:copy(self.targets:index(1,featids))
-
-    return self:getSample(labels, sampleids , randomids, ...),target
+    local target = self.targets:index(1,featids)
+    -- Return the targets and the flattened target view
+    return self:getSample(labels, sampleids, ...),target:view(target:nElement())
 end
 
 function BaseDataloader:getUtterances(start,stop, ... )
@@ -191,19 +185,23 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
     end
     -- Randomized ids, passed to cacheiterator
-    local randomids
+    local sampleids 
     if random then
         -- Shuffle the list
-        randomids = torch.LongTensor():randperm(self:size())
         -- Apply the randomization
+        sampleids = torch.randperm(self:size()):long()
+    else
+        sampleids = torch.range(1,self:size()):long()
     end
 
     local min = math.min
 
     self:beforeIter(unpack(dots))
 
+    local stop,bs = 0,0
     local cursample = 1
-    local inputs,targets 
+    local inputs,targets
+    local batch
     -- build iterator
     return function()
         if cursample > epochsize then
@@ -211,11 +209,12 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
             return
         end
         -- epochsize +1 to let the cursample >epochsize trigger after that frame. 
-        local bs = min(cursample+batchsize, epochsize + 1) - cursample
+        bs = min(cursample+batchsize, epochsize + 1) - cursample
 
-        local stop = cursample + bs 
+        stop = cursample + bs
+        local tic = torch.tic()
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(cursample, stop, randomids, unpack(dots))}
+        batch = {self:subSamples(sampleids[{{cursample,stop-1}}], unpack(dots))}
         -- Reuse buffers
         inputs,targets = batch[1],batch[2]
 

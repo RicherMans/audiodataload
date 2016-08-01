@@ -15,8 +15,10 @@ local tester = torch.Tester()
 
 ProFi = require 'ProFi'
 
+local filelist = arg[1]
+
 function modeltester:init()
-    local filepath = "train.lst"
+    local filepath = filelist
     local dataloader = audioload.WaveDataloader(filepath,100)
 
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile',chunksize=10000}
@@ -24,40 +26,59 @@ function modeltester:init()
 end
 
 function modeltester:iterwavedataloaderrandom()
-    local filepath = "train.lst"
+    local filepath = filelist
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
     ProFi:start('hdf5')
-    local it = wrapper:sampleiterator(128,nil,true)
-    local tic = torch.tic()
-    for i,k,v,d in it do
-        -- print(i,k,v,d)
-    end
-    ProFi:stop()
-    it = dataloader:sampleiterator(128,nil,true)
-    tic = torch.tic()
-    for i,k,v,d in it do
+    -- Prepare the Labels etc.
+    local labcount = torch.zeros(dataloader:nClasses())
+    local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+    local sampletoclass = torch.Tensor(dataloader:size())
 
+    for s,e,inp,lab in wrapper:sampleiterator(1) do
+        labcount[lab[1]] = labcount[lab[1]] + 1
+        tester:assert(inp:size(1) == lab:size(1))
+        sampletoclass[s-1] = lab[1]
+        local addone = torch.Tensor(lab:size(1)):fill(1)
+        classsizes:indexAdd(1,lab:long(),addone)
     end
-    ProFi:writeReport('testwavedataloaderrandomhdf5.txt')
+
+    tester:assert(labcount:sum() == wrapper:size())
+    local randomizetol = math.ceil(dataloader:size()/2)
+
+     -- Emulate some 5 iterations over the data
+    for i=1,5 do
+        local randomized = 0
+        local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
+        for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
+            if sampletoclass[s-1] ~= lab[1] then
+                randomized = randomized + 1
+            end
+            local addone = torch.Tensor(lab:size(1)):fill(1)
+            tmpclasssizes:indexAdd(1,lab:long(),addone)
+            tester:assert(inp:size(1) == lab:size(1))
+        end
+        tester:eq(tmpclasssizes,classsizes)
+        tester:assert(randomized ~= 0 and randomized > randomizetol,"Randomization not done correctly")
+    end
     sys.fexecute("rm myfile2")
 end
 
 function modeltester:iterwavedataloader()
-    local filepath = "train.lst"
+    local filepath = filelist
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
 
-    local it = wrapper:sampleiterator(128,nil,false)
+    local it = wrapper:sampleiterator(128,nil,true)
     local tic = torch.tic()
     for i,k,v,d in it do
         -- print(i,k,v,d)
     end
     print("\nHDF took " .. torch.toc(tic))
 
-    it = dataloader:sampleiterator(128,nil,false)
+    it = dataloader:sampleiterator(128,nil,true)
     tic = torch.tic()
     for i,k,v,d in it do
 
@@ -67,7 +88,7 @@ function modeltester:iterwavedataloader()
 end
 --
 function modeltester:iterseqence()
-    local filepath = "train.lst"
+    local filepath = filelist
     local dataloader = audioload.WaveDataloader(filepath,100)
 
     local seqdataloader = audioload.Sequenceiterator(dataloader,20)
@@ -87,7 +108,7 @@ end
 --
 
 function modeltester:iterutt()
-    local filepath = "train.lst"
+    local filepath = filelist
     local dataloader = audioload.WaveDataloader(filepath,100)
 
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile1'}
@@ -102,6 +123,10 @@ function modeltester:iterutt()
     sys.fexecute("rm myfile1")
 end
 
+if not filelist or filelist == "" then
+    print("Please pass a wave filelist as first argument")
+    return
+end
 
 tester:add(modeltester)
 tester:run()
