@@ -31,7 +31,6 @@ function HtkDataloader:__init(...)
     local header = _htktorch.loadheader(firstfile)
 
     self._dim = header.samplesize
-
 end
 
 
@@ -67,7 +66,9 @@ end
 -- Iterator callback function
 function HtkDataloader:getSample(labels, ids, ...)
     -- Use a local copy of input to make it thread safe
+    tic = torch.tic()
     local input = torch.Tensor(labels:size(1),self:dim())
+
     -- The stepsize
     local framewindow = self:dim()
     -- Buffer for audiosample
