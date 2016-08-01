@@ -39,7 +39,6 @@ local audiobufpath = nil
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function HtkDataloader:loadAudioSample(audiofilepath,start,stop,...)
     if not (audiofilepath == audiobufpath) then
-        print(__threadid," Change")
         htkbuf = _htktorch.load(audiofilepath)
         htkbuf = htkbuf:view(htkbuf:nElement())
     end
@@ -85,7 +84,6 @@ function HtkDataloader:getSample(labels, ids, ...)
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         input[i]:copy(sample)
     end
-    print("returned ",__threadid)
     return input
 end
 
