@@ -150,7 +150,6 @@ end
 
 function BaseDataloader:subSamples(sampleids, ... )
     -- Ids from the file lists
-    local tic = torch.tic()
     local featids = self.sampletofeatid:index(1,sampleids)
 
     local labels = self.filelabels:index(1,featids)

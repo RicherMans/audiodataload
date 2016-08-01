@@ -207,7 +207,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             stop = start + bs
             -- print("Starting with ",start,stop,"size:",bs)
             -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-            local batch = {self:_putQuene('subSamples',{sampleids[{{start,stop-1}}], unpack(dots)},bs)}
+            self:_putQuene('subSamples',{sampleids[{{start,stop-1}}], unpack(dots)},bs)
             -- -- allows reuse of inputs and targets buffers for next iteration
             -- inputs, targets = batch[1], batch[2]
             nput = nput + bs
