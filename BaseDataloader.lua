@@ -199,7 +199,6 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     local stop,bs = 0,0
     local cursample = 1
-    local inputs,targets
     local batch
     -- build iterator
     return function()
@@ -214,11 +213,9 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         local tic = torch.tic()
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
         batch = {self:subSamples(sampleids[{{cursample,stop-1}}], unpack(dots))}
-        -- Reuse buffers
-        inputs,targets = batch[1],batch[2]
 
         cursample = cursample + bs
-        return cursample - 1,epochsize, inputs, targets
+        return cursample - 1,epochsize, unpack(batch)
     end
 end
 
@@ -233,7 +230,6 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     local min = math.min
 
     local inputs, targets , bs, stop
-
 
     self:beforeIter(unpack(dots))
     -- build iterator

@@ -104,6 +104,51 @@ function modeltester:testsampleiteratorsinglethread()
     end
 end
 
+function modeltester:benchmark()
+    local filepath = wavefilelist
+    local dataloader = audioload.WaveDataloader(filepath,100)
+    local asyncdata = audioload.Asynciterator(dataloader,3)
+
+    local bsizes = {1,10,128}
+    for k,bs in pairs(bsizes) do
+        local rawtime, asynctime = 0,0
+        for i=1,3 do
+            local tic = torch.tic()
+            for s,e,inp,lab in asyncdata:sampleiterator(bs,nil,true) do
+
+            end
+            asynctime = asynctime + torch.toc(tic)
+            tic = torch.tic()
+            for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
+
+            end
+            rawtime = rawtime + torch.toc(tic)
+        end
+        print("Wave datafiles: For batchsize "..bs," Asynctime: "..asynctime," Wavetime: ",rawtime)
+    end
+
+    dataloader = audioload.HtkDataloader(htkfilelist)
+    asyncdata = audioload.Asynciterator(dataloader,3)
+    local bsizes = {1,10,128}
+    for k,bs in pairs(bsizes) do
+        local rawtime, asynctime = 0,0
+        for i=1,3 do
+            local tic = torch.tic()
+            for s,e,inp,lab in asyncdata:sampleiterator(bs,nil,true) do
+
+            end
+            asynctime = asynctime + torch.toc(tic)
+            tic = torch.tic()
+            for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
+
+            end
+            rawtime = rawtime + torch.toc(tic)
+        end
+        print("HTK data: For batchsize "..bs," Asynctime: "..asynctime," Htkdataloadertime: ",rawtime)
+    end
+
+end
+
 
 function modeltester:randomizedtest()
     local filepath = htkfilelist

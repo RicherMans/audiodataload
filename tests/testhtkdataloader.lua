@@ -100,6 +100,15 @@ function modeltester:testsize()
         tester:assert(size == numsamples)
     end
 end
+
+function modeltester:testloadAudioSample()
+    local dataloader = audioload.HtkDataloader(filelist)
+    local f=assert(io.open(filelist))
+    local firstline = f:read()
+    local feat = firstline:split(" ")[1]
+    -- print(dataloader:loadAudioSample(feat,39,40))
+    -- dataloader:loadAudioSample
+end
 --
 -- function modeltester:testUtteranceSeq()
 --     local filepath = "train.lst"
