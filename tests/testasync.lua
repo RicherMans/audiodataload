@@ -72,19 +72,25 @@ end
 function modeltester:testsampleiteratormultipleHTK()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
-    local asyncdata = audioload.Asynciterator(dataloader,5)
+    local asyncdata = audioload.Asynciterator(dataloader,3)
 
-    for s,e,inp,lab in dataloader:sampleiterator(128) do
+    local classsizes= torch.Tensor(asyncdata:nClasses()):zero()
+    for s,e,inp,lab in asyncdata:sampleiterator(128) do
         tester:assert(inp:size(1) == lab:size(1))
+        local addone = torch.Tensor(lab:size(1)):fill(1)
+        classsizes:indexAdd(1,lab:long(),addone)
     end
+    tester:assert(classsizes:sum()==asyncdata:size())
 
-    -- Multiple loops
-    for s,e,inp,lab in asyncdata:sampleiterator(44) do
-        tester:assert(inp:size(1) == lab:size(1))
-    end
-
-    for s,e,inp,lab in asyncdata:sampleiterator(44) do
-        tester:assert(inp:size(1) == lab:size(1))
+    -- Multiple iterations over data
+    for i=1,5 do
+        local tmpclasssizes = torch.Tensor(asyncdata:nClasses()):zero()
+        for s,e,inp,lab in asyncdata:sampleiterator(44,nil,true) do
+            local addone = torch.Tensor(lab:size(1)):fill(1)
+            tmpclasssizes:indexAdd(1,lab:long(),addone)
+            tester:assert(inp:size(1) == lab:size(1))
+        end
+        tester:eq(tmpclasssizes,classsizes)
     end
 end
 
@@ -102,7 +108,7 @@ end
 function modeltester:randomizedtest()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
-    local asynciter = audioload.Asynciterator(dataloader,4,true)
+    local asynciter = audioload.Asynciterator(dataloader,4)
 
     local valuetolab = {}
     local numvalues = 0
@@ -128,8 +134,8 @@ function modeltester:randomizedtest()
 
 
     -- Emulate some 10 iterations over the data
-    print("Running 10 iterations ")
-    for i=1,10 do
+    print("Running 5 iterations ")
+    for i=1,5 do
         local tmpnumvalues = numvalues
         local randomizecount = 0
         local tmpvaluetolab = shallowcopy(valuetolab)

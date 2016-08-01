@@ -219,7 +219,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         inputs,targets = batch[1],batch[2]
 
         cursample = cursample + bs
-        return cursample,epochsize, inputs, targets
+        return cursample - 1,epochsize, inputs, targets
     end
 end
 
