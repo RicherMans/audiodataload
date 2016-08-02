@@ -148,6 +148,30 @@ function modeltester:benchmark()
     end
 
 end
+function modeltester:meanstdnormalizationexample()
+    local dataloader = audioload.HtkDataloader(htkfilelist)
+    local asynciter = audioload.Asynciterator(dataloader,4)
+    local datasize =asynciter:size()
+    local samplesize = 1000
+    -- Simulate mean sampling
+    local iter = asynciter:sampleiterator(samplesize,-1,true)
+    local s,e,samples = iter()
+    local maxsize = math.min(datasize,samplesize)
+    tester:assert(samples:size(1) == maxsize,"Sample size"..samples:size(1).." should be: "..maxsize)
+
+    iter = asynciter:sampleiterator(samplesize,-1,true)
+    local s,e,samples = iter()
+    local maxsize = math.min(datasize,samplesize)
+    tester:assert(samples:size(1) == maxsize,"Sample size"..samples:size(1).." should be: "..maxsize)
+
+    for k,v,inp,lab in asynciter:sampleiterator(128,-1,true) do
+        tester:assert(inp:size(1) <= 128)
+    end
+
+    for k,v,inp,lab in asynciter:sampleiterator(128,-1,true) do
+        tester:assert(inp:size(1) <= 128)
+    end
+end
 
 
 function modeltester:randomizedtest()
@@ -157,17 +181,15 @@ function modeltester:randomizedtest()
 
     local valuetolab = {}
     local numvalues = 0
-    local tic = torch.tic()
-    local valuetoidx = {}
-    local starttovalue = {}
     local labcount = torch.zeros(asynciter:nClasses())
-    print("Init sampleiterator")
-    for s,e,inp,lab in asynciter:sampleiterator(1,nil,true) do
+    local dataset = torch.FloatTensor(asynciter:size(),asynciter:dim())
+    local targets = torch.LongTensor(asynciter:size(),1)
+    for s,e,inp,lab in asynciter:sampleiterator(1,nil) do
         valuetolab[inp[1][1]] = lab[1]
-        valuetoidx[inp[1][1]] = s
         labcount[lab[1]] = labcount[lab[1]] + 1
-        starttovalue[s] = inp[1][1]
         numvalues = numvalues + 1
+        dataset[s]:copy(inp:view(inp:nElement()))
+        targets[s]:copy(lab)
         tester:assert(inp:size(1) == lab:size(1))
     end
 
@@ -179,12 +201,11 @@ function modeltester:randomizedtest()
 
 
     -- Emulate some 10 iterations over the data
-    print("Running 5 iterations ")
-    for i=1,5 do
+    print("Running 2 iterations ")
+    for i=1,2 do
         local tmpnumvalues = numvalues
         local randomizecount = 0
         local tmpvaluetolab = shallowcopy(valuetolab)
-        local tmpvaluetoidx = {}
         local itercount = 0
         local startpoints = {}
         local tmplabcount = labcount:clone()
@@ -193,26 +214,31 @@ function modeltester:randomizedtest()
         end
         for s,e,inp,lab in asynciter:sampleiterator(1,nil,true) do
             itercount = itercount + 1
-            tmpvaluetoidx[inp[1][1]] = s
             if valuetolab[inp[1][1]] and valuetolab[inp[1][1]] == lab[1] then
                 tmpnumvalues = tmpnumvalues - 1
                 tmpvaluetolab[inp[1][1]] = nil
             end
             tmplabcount[lab[1]] = tmplabcount[lab[1]] -1
             startpoints[s] = nil
+            for j=1,dataset:size(1) do
+                if dataset[j]:equal(inp:view(inp:nElement())) then
+                    tester:assert(targets[j]:equal(lab),"Randomized labels are not correct")
+                    break
+                end
+            end
             -- Count of non sucessfull randomized values ( can happen )
-            if starttovalue[s] == inp[1][1] then
+            if dataset[s]:equal(inp:view(inp:nElement())) then
                 randomizecount = randomizecount + 1
             end
             tester:assert(inp:size(1) == lab:size(1))
         end
         print("Iteration "..i.." done")  
         tester:eq(tmplabcount,torch.zeros(asynciter:nClasses()),"Labels are not the same in iteration "..i)
-        
-        -- pick 4 as a valid number of unchanged indices
+    
+        -- Check if all indices were visited        
         tester:assert(next(startpoints) == nil)
         -- Check if the randomization works, we use some artificial threshold. Not that important if that fails by some larger count
-        tester:assert(randomizecount < maxrandomizeerr,"Error in iteration "..i..", randomize count is "..randomizecount)
+        tester:assert(randomizecount < maxrandomizeerr,"Error in iteration "..i..", randomize count is "..randomizecount .. "/"..numsamples)
         tester:assert(tmpnumvalues == 0,"Error in iteration "..i.." leftover "..tmpnumvalues)
     end
 end

@@ -88,7 +88,7 @@ function BaseDataloader:sampletofeat(samplelengths)
     local sampletofeatid,sampletoclassrange = torch.LongTensor(self:size()),torch.LongTensor(self:size())
     for i=1,samplelengths:size(1) do
         numsamples = samplelengths[i]
-        -- -- Fill in the target for each sample
+        -- -- Fill in the filelabel for each sample ( assume they are order equally)
         sampletofeatid[{{runningindex + 1, runningindex + numsamples}}]:fill(i)
         -- Fill in the internal range for each sample
         sampletoclassrange[{{runningindex + 1, runningindex + numsamples}}]:range(1,numsamples)
@@ -175,7 +175,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     random = random or false
     if not ( self.sampletofeatid and self.sampletoclassrange ) then
-        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
+        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths,self.targets)
     end
     -- Randomized ids, passed to cacheiterator
     local sampleids = torch.LongTensor()

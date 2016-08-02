@@ -56,34 +56,40 @@ function modeltester:testrandomize()
     local filepath = filelist
     local dataloader = audioload.HtkDataloader{path=filepath}
 
-    local valuetolab = {}
-    local numvalues = 0
     local tic = torch.tic()
     local labcount = torch.zeros(dataloader:nClasses())
-    for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
-        valuetolab[inp[1][1]] = lab[1]
-        numvalues = numvalues + 1
+    local dataset = torch.Tensor(dataloader:size(),dataloader:dim())
+    local targets = torch.LongTensor(dataloader:size(),1)
+    for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
         labcount[lab[1]] = labcount[lab[1]] + 1
+        dataset[s]:copy(inp:view(inp:nElement()))
+        targets[s]:copy(lab)
         tester:assert(inp:size(1) == lab:size(1))
     end
 
     tester:assert(labcount:sum() == dataloader:size())
 
-    -- Emulate some 5 iterations over the data
-    for i=1,5 do
-        local tmpnumvalues = numvalues
+    -- Emulate some 3 iterations over the data
+    for i=1,3 do
         local tmplabcount = labcount:clone()
+        local notrandomized = 0
         for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
-            if valuetolab[inp[1][1]] then
-                if valuetolab[inp[1][1]] == lab[1] then
-                    tmpnumvalues = tmpnumvalues - 1
+            
+            for j=1,dataset:size(1) do
+                if dataset[j]:equal(inp:view(inp:nElement())) then
+                    tester:assert(targets[j]:equal(lab),"Randomized labels are not correct")
+                    break
                 end
             end
+            if dataset[s]:equal(inp:view(inp:nElement())) then
+                notrandomized = notrandomized + 1
+            end
+            
             tmplabcount[lab[1]] = tmplabcount[lab[1]] -1
             tester:assert(inp:size(1) == lab:size(1))
         end
+        tester:assert(notrandomized < 10,"Randomization factor is a bit small")
         tester:eq(tmplabcount,torch.zeros(dataloader:nClasses()),"Labels are not the same in iteration "..i)
-        tester:assert(tmpnumvalues == 0,"Error in iteration "..i.. " difference is "..tmpnumvalues)
     end
     
 end
@@ -94,8 +100,8 @@ function modeltester:testsize()
     -- Simulate 3 iterations over the dataset
     for i=1,3 do
         local numsamples = 0
-        for _ in dataloader:sampleiterator(1,nil,true) do
-            numsamples = numsamples + 1
+        for s,e,i in dataloader:sampleiterator(2048,nil,true) do
+            numsamples = numsamples + i:size(1)
         end
         tester:assert(size == numsamples)
     end
@@ -133,41 +139,6 @@ function modeltester:testdifferentbatchsize()
         end
     end
 end
---
--- function modeltester:testUtteranceSeq()
---     local filepath = "train.lst"
---     local dataloader = audioload.HtkDataloader{path=filepath}
---
---     local it = dataloader:uttiterator(1)
---     local tic = torch.tic()
---     for i,k,v,t in it do
---         tester:assert(i ~= nil)
---         tester:assert(k ~= nil)
---         tester:assert(v:nonzero() ~= nil)
---         tester:assert(v ~= nil)
---         tester:assert(t ~= nil)
---         -- xlua.progress(i,k)
---     end
---     print("Took "..torch.toc(tic))
--- end
---
--- function modeltester:testUtteranceNoSeq()
---     local filepath = "train.lst"
---     local dataloader = audioload.HtkDataloader{path=filepath}
---
---     local tic = torch.tic()
---     local it = dataloader:uttiterator(1)
---     for i,k,v,t in it do
---         tester:assert(i ~= nil)
---         tester:assert(k ~= nil)
---         tester:assert(v:nonzero() ~= nil)
---         tester:assert(v ~= nil)
---         tester:assert(t ~= nil)
---         -- xlua.progress(i,k)
---         -- print(i,k,v,d)
---     end
---     print("Took "..torch.toc(tic))
--- end
 
 
 if not filelist or filelist == "" then
