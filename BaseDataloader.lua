@@ -225,13 +225,13 @@ function BaseDataloader:uttiterator(batchsize,epochsize, random , ... )
     local inputs, targets , bs, stop
 
     random = random or false
-    local uttids
+    local uttids = torch.LongTensor()
     if random then
         -- Shuffle the list
         -- Apply the randomization
-        uttids = torch.randperm(self:usize()):long()
+        uttids = uttids:randperm(self:usize())
     else
-        uttids = torch.range(1,self:usize()):long()
+        uttids = uttids:range(1,self:usize())
     end
 
     self:beforeIter(unpack(dots))
