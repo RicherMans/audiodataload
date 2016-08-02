@@ -171,13 +171,13 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     random = random or false
 
     -- Randomized ids, passed to cacheiterator
-    local sampleids 
+    local sampleids = torch.LongTensor()
     if random then
         -- Shuffle the sample list
         -- Apply the randomization
-        sampleids = torch.randperm(self:size()):long()
+        sampleids = sampleids:randperm(self:size())
     else
-        sampleids = torch.range(1,self:size()):long()
+        sampleids = sampleids:range(1,self:size())
     end
 
     local min = math.min
@@ -189,7 +189,6 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     self:beforeIter(unpack(dots))
 
     local putmode = true
-    local size = self:size()
     local stop
     local start = 1
 
@@ -204,15 +203,15 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
         if nput <= epochsize then
             local bs = min(nput+batchsize , epochsize + 1 ) - nput
 
-            stop = start + bs
+            stop = start + bs - 1
             -- print("Starting with ",start,stop,"size:",bs)
             -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-            self:_putQuene('subSamples',{sampleids[{{start,stop-1}}], unpack(dots)},bs)
+            self:_putQuene('subSamples',{sampleids[{{start,stop}}], unpack(dots)},bs)
             -- -- allows reuse of inputs and targets buffers for next iteration
             -- inputs, targets = batch[1], batch[2]
             nput = nput + bs
             start = start + bs
-            if start > size then
+            if start > self:size() then
                 start = 1
             end
         end

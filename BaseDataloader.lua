@@ -178,13 +178,13 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
     end
     -- Randomized ids, passed to cacheiterator
-    local sampleids 
+    local sampleids = torch.LongTensor()
     if random then
         -- Shuffle the list
         -- Apply the randomization
-        sampleids = torch.randperm(self:size()):long()
+        sampleids = sampleids:randperm(self:size()):long()
     else
-        sampleids = torch.range(1,self:size()):long()
+        sampleids = sampleids:range(1,self:size()):long()
     end
 
     local min = math.min
@@ -192,22 +192,23 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     self:beforeIter(unpack(dots))
 
     local stop,bs = 0,0
-    local cursample = 1
+    self._cursample = 1
     -- build iterator
     return function()
-        if cursample > epochsize then
+        
+        if self._cursample > epochsize then
             self:afterIter(unpack(dots))
             return
         end
-        -- epochsize +1 to let the cursample >epochsize trigger after that frame. 
-        bs = min(cursample+batchsize, epochsize + 1) - cursample
+        -- epochsize +1 to let the self._cursample >epochsize trigger after that frame. 
+        bs = min(self._cursample+batchsize, epochsize + 1) - self._cursample
 
-        stop = cursample + bs - 1
+        stop = self._cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(sampleids[{{cursample,stop}}], unpack(dots))}
+        local batch = {self:subSamples(sampleids[{{self._cursample,stop}}], unpack(dots))}
 
-        cursample = cursample + bs
-        return cursample - 1,epochsize, unpack(batch)
+        self._cursample = self._cursample + bs
+        return self._cursample - 1,epochsize, unpack(batch)
     end
 end
 
@@ -244,7 +245,6 @@ function BaseDataloader:uttiterator(batchsize,epochsize, random , ... )
         bs = min(self._curutterance+batchsize, epochsize + 1 ) - self._curutterance
 
         stop = self._curutterance + bs - 1
-        print(self._curutterance,stop,epochsize)
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
         local batch = {self:getUtterances(uttids[{{self._curutterance,stop}}], unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
@@ -257,5 +257,5 @@ end
 -- Resets the current dataloader iterator
 function BaseDataloader:reset()
    self._curutterance = 1
-   -- self._cursample = 1
+   self._cursample = 1
 end

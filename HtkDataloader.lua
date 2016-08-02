@@ -60,10 +60,10 @@ end
 
 -- Iterator callback function
 function HtkDataloader:getSample(labels, ids, ...)
-    -- Use a local copy of input to make it thread safe
-    local input = torch.Tensor(labels:size(1),self:dim())
     -- The stepsize
     local framewindow = self:dim()
+    -- Use a local copy of input to make it thread safe
+    local input = torch.Tensor(labels:size(1),framewindow)
     -- Buffer for audiosample
     local sample = nil
     -- Starting frame
