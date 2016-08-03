@@ -191,8 +191,6 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     local putmode = true
     local stop
     local start = 1
-
-
     -- build iterator
     local iterate = function()
         -- finish if

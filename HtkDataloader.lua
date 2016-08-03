@@ -36,13 +36,12 @@ end
 
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function HtkDataloader:loadAudioSample(audiofilepath,start,stop,...)
-    local htkbuf = _htktorch.load(audiofilepath)
-    htkbuf = htkbuf:view(htkbuf:nElement())
+    local htkbuf = _htktorch.loadsample(audiofilepath,start)
     -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
     if stop > htkbuf:size(1) then
         return torch.zeros(stop-start + 1)
     else
-        return htkbuf:sub(start,stop)
+        return htkbuf
     end
 
 end
@@ -68,13 +67,10 @@ function HtkDataloader:getSample(labels, ids, ...)
     local sample = nil
     -- Starting frame
     local framestart = 1
-    -- ending frame, maximum is the full seqence
-    local frameend = -1
     -- Get the current offset for the data
     for i=1,labels:size(1) do
-        framestart = (self.sampletoclassrange[ids[i]] - 1) * ( framewindow ) + 1
-        frameend = framestart+framewindow - 1
-        sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
+        framestart = self.sampletoclassrange[ids[i]] 
+        sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,-1,...)
         input[i]:copy(sample)
     end
     return input
