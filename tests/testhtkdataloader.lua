@@ -116,11 +116,14 @@ function modeltester:benchmark()
     for k,bs in pairs(bsizes) do
         for i=1,3 do
             collectgarbage()
+            local numbatches = 0
             tic = torch.tic()
             for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
-                
+                numbatches = numbatches + 1
             end 
-            time = time + torch.toc(tic)
+            local endtime = torch.toc(tic)
+            time = time + endtime
+            print(" Per batch time : ",time / numbatches)
         end
         print("HTKdata: Bsize",bs,"time:",time)
     end
