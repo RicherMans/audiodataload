@@ -115,6 +115,7 @@ function modeltester:benchmark()
     print(" ")
     for k,bs in pairs(bsizes) do
         for i=1,3 do
+            collectgarbage()
             tic = torch.tic()
             for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
                 
