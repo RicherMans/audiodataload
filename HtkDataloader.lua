@@ -58,11 +58,11 @@ function HtkDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
 end
 
 -- Iterator callback function
-function HtkDataloader:getSample(labels, ids, ...)
+function HtkDataloader:getSample(labels, ids, inputbuf, ...)
     -- The stepsize
     local framewindow = self:dim()
     -- Use a local copy of input to make it thread safe
-    local input = torch.Tensor(labels:size(1),framewindow)
+    inputbuf = inputbuf:resize(labels:size(1),framewindow)
     -- Buffer for audiosample
     local sample = nil
     -- Starting frame
@@ -71,9 +71,10 @@ function HtkDataloader:getSample(labels, ids, ...)
     for i=1,labels:size(1) do
         framestart = self.sampletoclassrange[ids[i]] 
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,-1,...)
-        input[i]:copy(sample)
+        inputbuf[i]:copy(sample)
     end
-    return input
+    sample = nil
+    return inputbuf
 end
 
 -- Returns the data dimensions
