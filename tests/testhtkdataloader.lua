@@ -107,6 +107,24 @@ function modeltester:testsize()
     end
 end
 
+function modeltester:benchmark()
+    local dataloader = audioload.HtkDataloader{path=filelist}
+    local bsizes = {1,10,128}
+    local time = 0
+    print(" ")
+    for k,bs in pairs(bsizes) do
+        for i=1,3 do
+            collectgarbage()
+            tic = torch.tic()
+            for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
+
+            end 
+            time = time + torch.toc(tic)
+        end
+        print("HTKdata: Bsize",bs,"time:",time)
+    end
+end
+
 function modeltester:testloadAudioSample()
     local dataloader = audioload.HtkDataloader(filelist)
     local f=assert(io.open(filelist))
