@@ -148,15 +148,15 @@ function BaseDataloader:_readfilename(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
-function BaseDataloader:subSamples(sampleids,input,target,labelsbuf, featids ,... )
+function BaseDataloader:subSamples(sampleids, ... )
     -- Ids from the file lists
-    featids:index(self.sampletofeatid,1,sampleids)
+    local featids = self.sampletofeatid:index(1,sampleids)
     -- Labels are passed to the getsample to obtain the datavector
-    labelsbuf:index(self.filelabels,1,featids)
+    local labels = self.filelabels:index(1,featids)
 
-    target:index(self.targets,1,featids)
+    local target = self.targets:index(1,featids)
     -- Return the targets and the flattened target view
-    return self:getSample(labelsbuf, sampleids,input, ...),target:view(target:nElement())
+    return self:getSample(labels, sampleids, ...),target:view(target:nElement())
 end
 
 function BaseDataloader:getUtterances(uttids, ... )
@@ -193,8 +193,6 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     local stop,bs = 0,0
     self._cursample = 1
-    local input , target = torch.Tensor(), torch.LongTensor()
-    local labelsbuf, sampletofeatbuf = torch.CharTensor(), torch.LongTensor()
     -- build iterator
     return function()
         
@@ -207,9 +205,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
         stop = self._cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(sampleids[{{self._cursample,stop}}], input,target,labelsbuf,sampletofeatbuf,unpack(dots))}
-        -- Reuse the buffers
-        input,target = batch[1],batch[2]
+        local batch = {self:subSamples(sampleids[{{self._cursample,stop}}], unpack(dots))}
 
         self._cursample = self._cursample + bs
         return self._cursample - 1,epochsize, unpack(batch)
