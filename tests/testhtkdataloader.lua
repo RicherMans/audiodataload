@@ -102,6 +102,7 @@ function modeltester:testsize()
         local numsamples = 0
         for s,e,i in dataloader:sampleiterator(2048,nil,true) do
             numsamples = numsamples + i:size(1)
+            collectgarbage()
         end
         tester:assert(size == numsamples)
     end
@@ -114,10 +115,9 @@ function modeltester:benchmark()
     print(" ")
     for k,bs in pairs(bsizes) do
         for i=1,3 do
-            collectgarbage()
             tic = torch.tic()
             for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
-
+                
             end 
             time = time + torch.toc(tic)
         end

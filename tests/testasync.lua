@@ -130,7 +130,7 @@ function modeltester:benchmark()
     end
 
     dataloader = audioload.HtkDataloader(htkfilelist)
-    asyncdata = audioload.Asynciterator(dataloader,2)
+    asyncdata = audioload.Asynciterator(dataloader,3)
     local bsizes = {1,10,128}
     for k,bs in pairs(bsizes) do
         local rawtime, asynctime = 0,0
