@@ -112,7 +112,7 @@ function BaseDataloader:_readfilename(filename)
     targets:resize(nlines,numbertargets):fill(-1)
     local str_data = filelabels:data()
     local target_data = targets:data()
-    local count = 0
+    local targetcount = 0
 
     local overall_samples = 0
 
@@ -121,26 +121,25 @@ function BaseDataloader:_readfilename(filename)
 
     local linecount = 0
     local audiosamples = 0
-    local floor = math.floor
-    local max = math.max
 
+    local curline
     for line in io.lines(filename) do
-        local l = line:split(' ')
+        curline = line:split(' ')
         -- Labels can be multiple ones
-        for i=2,#l do
-            target_data[count]=tonumber(l[i])
+        for i=2,#curline do
+            target_data[targetcount]=tonumber(curline[i])
             -- Go to the next item
-            count = count + 1
+            targetcount = targetcount + 1
         end
-
-        audiosamples = self:getNumAudioSamples(l[1])
+        -- Get from any subclass the number of audio samples this file has
+        audiosamples = self:getNumAudioSamples(curline[1])
         -- Add to the samples, but do not use the last audiochunk ( since it is not the same size as the others)
         overall_samples = overall_samples + audiosamples
 
         -- Load the current header
         headerlengths_data[linecount] = audiosamples
         -- Copy the current feature path into the featpath chartensor
-        ffi.copy(str_data,l[1])
+        ffi.copy(str_data,curline[1])
         -- Skip with the offset of the maxPathLength
         str_data = str_data + maxPathLength
         linecount = linecount + 1
@@ -155,7 +154,7 @@ function BaseDataloader:subSamples(sampleids, ... )
     local labels = self.filelabels:index(1,featids)
 
     local target = self.targets:index(1,featids)
-    -- Return the targets and the flattened target view
+    -- Return the samples and the flattened target view ( 1 dim )
     return self:getSample(labels, sampleids, ...),target:view(target:nElement())
 end
 
@@ -180,22 +179,21 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     -- Randomized ids, passed to cacheiterator
     local sampleids = torch.LongTensor()
     if random then
-        -- Shuffle the list
-        -- Apply the randomization
-        sampleids = sampleids:randperm(self:size()):long()
+        -- Shuffle the sampleid list, apply the randomization
+        sampleids = sampleids:randperm(self:size())
     else
-        sampleids = sampleids:range(1,self:size()):long()
+        sampleids = sampleids:range(1,self:size())
     end
 
     local min = math.min
 
     self:beforeIter(unpack(dots))
 
-    local stop,bs = 0,0
+    local stop,bs
+    local batch
     self._cursample = 1
     -- build iterator
     return function()
-        
         if self._cursample > epochsize then
             self:afterIter(unpack(dots))
             return
@@ -205,7 +203,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
         stop = self._cursample + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:subSamples(sampleids[{{self._cursample,stop}}], unpack(dots))}
+        batch = {self:subSamples(sampleids[{{self._cursample,stop}}], unpack(dots))}
 
         self._cursample = self._cursample + bs
         return self._cursample - 1,epochsize, unpack(batch)

@@ -78,6 +78,8 @@ function HtkDataloader:getSample(labels, ids, ...)
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         input[i]:copy(sample)
     end
+    -- Ready for cleanup
+    sample = nil
     return input
 end
 
