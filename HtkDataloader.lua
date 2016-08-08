@@ -62,6 +62,7 @@ end
 
 -- Iterator callback function
 function HtkDataloader:getSample(labels, classranges, ...)
+    _htktorch = _htktorch or require 'torchhtk'
     -- The stepsize
     local framewindow = self:dim()
     -- Use a local copy of input to make it thread safe
@@ -73,7 +74,6 @@ function HtkDataloader:getSample(labels, classranges, ...)
     local frameend = -1
     -- Get the current offset for the data
     for i=1,labels:size(1) do
-        -- print(i,classranges[i],__threadid)
         framestart = (classranges[i] - 1) * ( framewindow ) + 1
         frameend = framestart+framewindow - 1
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)

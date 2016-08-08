@@ -55,6 +55,8 @@ function Hdf5iterator:__init(...)
         hdf5write:close()
     end
 
+    self._opencache = hdf5.open(self.filepath,'r')
+
 
 end
 
@@ -94,7 +96,7 @@ function Hdf5iterator:getUtterance(start,stop, ...)
 end
 
 function Hdf5iterator:afterIter(...)
-    self._opencache:close()
+    -- self._opencache:close()
 end
 
 function Hdf5iterator:sampletofeat(samplelengths,...)
