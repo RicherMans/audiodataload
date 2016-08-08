@@ -24,21 +24,6 @@ local function calcnumframes(samplessize,framesize,shift)
     return math.floor((samplessize-framesize)/shift + 1)
 end
 
-function modeltester:testrandomize()
-    local filepath = filelist
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
-    ProFi:start()
-    local it = dataloader:sampleiterator(128,nil,true)
-    for i,k,v,t in it do
-        -- tester:assert(i ~= nil)
-        -- tester:assert(k ~= nil)
-        tester:assert(v ~= nil)
-        tester:assert(t ~= nil)
-    end
-    ProFi:stop()
-    ProFi:writeReport('testrandomize.txt')
-end
-
 function modeltester:testUtteranceSeq()
     local filepath = filelist
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}

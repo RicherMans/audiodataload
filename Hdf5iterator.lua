@@ -31,7 +31,6 @@ function Hdf5iterator:__init(...)
     for k,v in pairs(self.module) do
         self[k]=v
     end
-    assert(self.filepath ~= nil, "Filepath needs to be specified")
     -- Filepath is not found thus dump the modules content
     if not paths.filep(self.filepath) then
         -- Dumping filecontent first into hdf5
@@ -81,6 +80,7 @@ end
 
 -- Attach the opencache module to the wrapped class
 function Hdf5iterator:beforeIter(...)
+    hdf5 = hdf5 or require 'hdf5'
     self._opencache = hdf5.open(self.filepath,'r')
 end
 

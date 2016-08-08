@@ -41,11 +41,11 @@ function Asynciterator:__init(...)
     self.recvqueue = torchx.Queue()
     self.ninprogress = 0
 
-    self.module.sampletofeatid, self.module.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
-
     local threads = require 'threads'
     -- Threads share the given tensors
     threads.Threads.serialization('threads.sharedserialize')
+
+    local modstr = torch.serialize(self.module)
 
     local mainSeed = os.time()
      -- build a Threads pool, or use the last one initilized
@@ -70,7 +70,7 @@ function Asynciterator:__init(...)
                 if self.verbose then
                     print(string.format('Starting worker thread with id: %d seed: %d memory usage: %d mb', idx, seed,collectgarbage("count")/1024))
                 end
-                _t.module = self.module
+                _t.module = torch.deserialize(modstr)
             end)
             if not success then
                 error(err)
@@ -113,10 +113,11 @@ function Asynciterator:synchronize()
     self:forceCollectGarbage()
 end
 
-function Asynciterator:_putQuene(func,args,size)
+function Asynciterator:_putQuene(func,args,size,target)
     assert(torch.type(func) == 'string')
     assert(torch.type(args) == 'table')
     assert(torch.type(size) == 'number') -- size of batch
+    assert(torch.type(target) == 'torch.LongTensor')
     for i=1,1000 do
         if self.threads:acceptsjob() then
             break
@@ -134,11 +135,10 @@ function Asynciterator:_putQuene(func,args,size)
         -- the job callback (runs in data-worker thread)
         function()
             -- func, args and size are upvalues
-            local res = {_t.module[func](_t.module,unpack(args))}
+            local res = {}
+            res.input = _t.module[func](_t.module,unpack(args))
+            res.target = target
             res.size = size
-            local start,stop = unpack(args)
-            res.start = start
-            res.stop=stop
             return res
         end,
         -- the endcallback (runs in the main thread)
@@ -170,6 +170,9 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
 
     random = random or false
 
+
+    self.sampletofeatid, self.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
+
     -- Randomized ids, passed to cacheiterator
     local sampleids = torch.LongTensor()
     if random then
@@ -184,7 +187,6 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
 
     local nput = 1 -- currently in queune
     local nget = 1 -- overall sampled
-    local inputs, targets
 
     self:beforeIter(unpack(dots))
 
@@ -195,6 +197,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     local iterate = function()
         -- finish if
         if nget > epochsize then
+            self.threads:synchronize()
             self:afterIter(unpack(dots))
             return
         end
@@ -202,9 +205,17 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             local bs = min(nput+batchsize , epochsize + 1 ) - nput
 
             stop = start + bs - 1
-            -- print("Starting with ",start,stop,"size:",bs)
+            -- Need to keep these variables local for the threads
+            local cursampleids = sampleids[{{start,stop}}]
+            -- the row from the file lists
+            local featids = self.sampletofeatid:index(1,cursampleids)
+            -- The range of the current sample within the class
+            local classranges = self.sampletoclassrange:index(1,cursampleids)
+            -- Labels are passed to the getsample to obtain the datavector
+            local labels = self.module.filelabels:index(1,featids)
+            local target = self.module.targets:index(1,featids)
             -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-            self:_putQuene('subSamples',{sampleids[{{start,stop}}], unpack(dots)},bs)
+            self:_putQuene('getSample',{labels,classranges, unpack(dots)},bs,target:view(target:nElement()))
             -- -- allows reuse of inputs and targets buffers for next iteration
             -- inputs, targets = batch[1], batch[2]
             nput = nput + bs
@@ -219,7 +230,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
             nget = nget + batch.size
             self:collectgarbage()
             -- print(batch.start,batch.stop,nget,nput,epochsize)
-            return nget - 1 , epochsize, unpack(batch)
+            return nget - 1 , epochsize, batch.input, batch.target
         end
         return
     end
@@ -228,6 +239,11 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
     end
     putmode = false
     return iterate
+end
+
+function Asynciterator:reset()
+    self:collectgarbage()
+    self.threads:synchronize()
 end
 
 function Asynciterator:nClasses()

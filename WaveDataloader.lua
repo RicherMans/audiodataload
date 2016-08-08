@@ -91,7 +91,7 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
 end
 
 -- Iterator callback function
-function WaveDataloader:getSample(labels,  ids, ...)
+function WaveDataloader:getSample(labels,  classrange, ...)
     --  batchsize X dimension
     local input = torch.Tensor(labels:size(1),self:dim())
     -- Buffer for audiosample
@@ -101,7 +101,7 @@ function WaveDataloader:getSample(labels,  ids, ...)
     local endsample = 0
     -- Get the current offset for the data
     for i=1,labels:size(1) do
-        startsample = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
+        startsample = (classrange[i] - 1) * ( self.shift ) + 1
         endsample = startsample + self:dim() - 1
         wavesample = self:loadAudioSample(readfilelabel(labels[i]),startsample,endsample,...)
         input[i]:copy(wavesample)

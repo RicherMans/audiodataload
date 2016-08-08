@@ -18,17 +18,7 @@ function modeltester:init()
     local filepath = filelist
     local dataloader = audioload.HtkDataloader(filepath)
 end
-function modeltester:testbatchUtterance()
-    local filepath = filelist
-    local dataloader = audioload.HtkDataloader{path=filepath}
 
-    local iter = dataloader:uttiterator()
-    for i,k,v,t in iter do
-        tester:assert(type(i) == 'number')
-        tester:assert(type(k) == 'number')
-        tester:assert(torch.isTensor(v))
-    end
-end
 function modeltester:testnonrandomizedsamples()
     local filepath = filelist
     local dataloader = audioload.HtkDataloader(filepath)
@@ -57,13 +47,16 @@ function modeltester:testrandomize()
     local dataloader = audioload.HtkDataloader{path=filepath}
 
     local tic = torch.tic()
-    local labcount = torch.zeros(dataloader:nClasses())
+    local labcount = torch.zeros(dataloader:nClasses()):zero()
     local dataset = torch.Tensor(dataloader:size(),dataloader:dim())
     local targets = torch.LongTensor(dataloader:size(),1)
-    for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
-        labcount[lab[1]] = labcount[lab[1]] + 1
-        dataset[s]:copy(inp:view(inp:nElement()))
-        targets[s]:copy(lab)
+    local bs = 128
+    for s,e,inp,lab in dataloader:sampleiterator(bs,nil) do
+        local addone = torch.Tensor(lab:size(1)):fill(1)
+        labcount:indexAdd(1,lab:long(),addone)
+        local bsize = inp:size(1)
+        dataset[{{s-bsize+1,s}}]:copy(inp)
+        targets[{{s-bsize+1,s}}]:copy(lab)
         tester:assert(inp:size(1) == lab:size(1))
     end
 
@@ -71,25 +64,38 @@ function modeltester:testrandomize()
 
     -- Emulate some 3 iterations over the data
     for i=1,3 do
-        local tmplabcount = labcount:clone()
+        local tmplabcount = torch.zeros(dataloader:nClasses())
         local notrandomized = 0
-        for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
-            
+        local tmptargets = torch.Tensor(dataloader:size()):zero()
+        local testunique = torch.Tensor(dataloader:size()):zero()
+        for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
+            local bsize = inp:size(1)
+
             for j=1,dataset:size(1) do
-                if dataset[j]:equal(inp:view(inp:nElement())) then
-                    tester:assert(targets[j]:equal(lab),"Randomized labels are not correct")
-                    break
-                end
+                local origtarget = targets[j][1]
+                for k=1,inp:size(1) do
+                    if dataset[j]:equal(inp[k]) then
+                        local targetid = s-bsize + k
+                        testunique[targetid] = testunique[targetid]+ 1
+                        tmptargets[j] = targetid
+                        tester:assert(lab[k] ==origtarget)
+                        break
+                    end
+                end    
             end
-            if dataset[s]:equal(inp:view(inp:nElement())) then
+            local addone = torch.Tensor(lab:size(1)):fill(1)
+            tmplabcount:indexAdd(1,lab:long(),addone)
+            if dataset[{{s-bsize+1,s}}]:equal(inp) then
                 notrandomized = notrandomized + 1
             end
             
-            tmplabcount[lab[1]] = tmplabcount[lab[1]] -1
             tester:assert(inp:size(1) == lab:size(1))
         end
-        tester:assert(notrandomized < 10,"Randomization factor is a bit small")
-        tester:eq(tmplabcount,torch.zeros(dataloader:nClasses()),"Labels are not the same in iteration "..i)
+        local sorted,_ = tmptargets:sort()
+
+        tester:assert(notrandomized == 0,"Randomization factor is a bit small ("..notrandomized..")")
+        tester:eq(testunique,torch.ones(dataloader:size()))
+        tester:eq(tmplabcount,labcount,"Labels are not the same in iteration "..i)
     end
     
 end
@@ -108,9 +114,10 @@ function modeltester:testsize()
     end
 end
 
+local timer = torch.Timer()
 function modeltester:benchmark()
     local dataloader = audioload.HtkDataloader{path=filelist}
-    local bsizes = {1,10,128}
+    local bsizes = {64,128,256}
     local time = 0
     print(" ")
     for k,bs in pairs(bsizes) do
@@ -118,7 +125,8 @@ function modeltester:benchmark()
             collectgarbage()
             tic = torch.tic()
             for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
-                
+                print(string.format("Sample [%i/%i]: Time for dataloading %.4f",s,e,timer:time().real))
+                timer:reset()
             end 
             time = time + torch.toc(tic)
         end

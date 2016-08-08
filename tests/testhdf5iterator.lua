@@ -102,7 +102,7 @@ end
 
 function modeltester:benchmarkhtkiter()
     local dataloader = audioload.HtkDataloader(htkfilelist)
-    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
+    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2',chunksize=dataloader:dim()}
 
     local it = wrapper:sampleiterator(128,nil,true)
     local tic = torch.tic()

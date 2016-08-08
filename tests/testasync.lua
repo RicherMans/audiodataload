@@ -72,10 +72,11 @@ end
 function modeltester:testsampleiteratormultipleHTK()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
-    local asyncdata = audioload.Asynciterator(dataloader,3)
+    local asyncdata = audioload.Asynciterator(dataloader,1)
 
     local classsizes= torch.Tensor(asyncdata:nClasses()):zero()
     for s,e,inp,lab in asyncdata:sampleiterator(128) do
+
         tester:assert(inp:size(1) == lab:size(1))
         local addone = torch.Tensor(lab:size(1)):fill(1)
         classsizes:indexAdd(1,lab:long(),addone)
@@ -107,7 +108,7 @@ end
 function modeltester:benchmark()
     local filepath = wavefilelist
     local dataloader = audioload.WaveDataloader(filepath,100)
-    local asyncdata = audioload.Asynciterator(dataloader,2)
+    local asyncdata = audioload.Asynciterator(dataloader,3)
 
     local bsizes = {1,10,128}
     for k,bs in pairs(bsizes) do
@@ -150,23 +151,24 @@ function modeltester:benchmark()
         end
         print("HTK data: For batchsize "..bs," Asynctime: "..asynctime," Htkdataloadertime: ",rawtime)
     end
-
 end
+
+
 function modeltester:meanstdnormalizationexample()
     local dataloader = audioload.HtkDataloader(htkfilelist)
     local asynciter = audioload.Asynciterator(dataloader,4)
-    local datasize =asynciter:size()
-    local samplesize = 1000
+    local datasize = asynciter:size()
+    local samplesize = 300
     -- Simulate mean sampling
     local iter = asynciter:sampleiterator(samplesize,-1,true)
     local s,e,samples = iter()
     local maxsize = math.min(datasize,samplesize)
-    tester:assert(samples:size(1) == maxsize,"Sample size"..samples:size(1).." should be: "..maxsize)
+    tester:assert(samples:size(1) == maxsize,"Sample size "..samples:size(1).." should be: "..maxsize)
 
     iter = asynciter:sampleiterator(samplesize,-1,true)
     local s,e,samples = iter()
     local maxsize = math.min(datasize,samplesize)
-    tester:assert(samples:size(1) == maxsize,"Sample size"..samples:size(1).." should be: "..maxsize)
+    tester:assert(samples:size(1) == maxsize,"Sample size "..samples:size(1).." should be: "..maxsize)
 
     for k,v,inp,lab in asynciter:sampleiterator(128,-1,true) do
         tester:assert(inp:size(1) <= 128)

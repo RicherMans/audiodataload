@@ -128,7 +128,6 @@ function BaseDataloader:_readfilename(filename)
         -- Labels can be multiple ones
         for i=2,#curline do
             target_data[targetcount]=tonumber(curline[i])
-            -- Go to the next item
             targetcount = targetcount + 1
         end
         -- Get from any subclass the number of audio samples this file has
@@ -147,17 +146,6 @@ function BaseDataloader:_readfilename(filename)
     return filelabels,targets,headerlengths,overall_samples
 end
 
-function BaseDataloader:subSamples(sampleids, ... )
-    -- Ids from the file lists
-    local featids = self.sampletofeatid:index(1,sampleids)
-    -- Labels are passed to the getsample to obtain the datavector
-    local labels = self.filelabels:index(1,featids)
-
-    local target = self.targets:index(1,featids)
-    -- Return the samples and the flattened target view ( 1 dim )
-    return self:getSample(labels, sampleids, ...),target:view(target:nElement())
-end
-
 function BaseDataloader:getUtterances(uttids, ... )
     local labels = self.filelabels:index(1,uttids)
 
@@ -173,6 +161,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
     epochsize = epochsize > 0 and epochsize or self:size()
 
     random = random or false
+    
     if not ( self.sampletofeatid and self.sampletoclassrange ) then
         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths,self.targets)
     end
@@ -191,6 +180,8 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
 
     local stop,bs
     local batch
+    local featids,classranges = torch.LongTensor(),torch.LongTensor()
+    local labels,target = torch.CharTensor(),torch.LongTensor()
     self._cursample = 1
     -- build iterator
     return function()
@@ -202,8 +193,17 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, random, ...)
         bs = min(self._cursample+batchsize, epochsize + 1) - self._cursample
 
         stop = self._cursample + bs - 1
+        local cursampleids = sampleids[{{self._cursample,stop}}]
+        -- the row from the file lists
+        featids:index(self.sampletofeatid,1,cursampleids)
+        -- The range of the current sample within the class
+        classranges:index(self.sampletoclassrange,1,cursampleids)
+
+        -- Labels are passed to the getsample to obtain the datavector
+        labels:index(self.filelabels,1,featids)
+        target:index(self.targets,1,featids)
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        batch = {self:subSamples(sampleids[{{self._cursample,stop}}], unpack(dots))}
+        batch = {self:getSample(labels, classranges, unpack(dots)),target:view(target:nElement())}
 
         self._cursample = self._cursample + bs
         return self._cursample - 1,epochsize, unpack(batch)
