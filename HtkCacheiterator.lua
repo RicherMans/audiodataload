@@ -52,7 +52,6 @@ function HtkCacheiterator:__init(...)
             runningid = runningid + input:size(1)
             cache[#cache+1] = input
             if runningid > size then
-                size = size*2
                 outputfileid = outputfileid + 1
                 runningid = 1
                 dump(cache,outputfile)
