@@ -9,9 +9,9 @@ local initcheck = argcheck{
         help="The module to wrap around",
     },
     {
-        name='filepath',
+        name='dirpath',
         type='string',
-        help="Cachefile for the HDF5 dumped file. If this file does not exist, we dump the modules content into it",
+        help="The directory where the parts are dumped to",
     },
     {
         name='cachesize',
@@ -37,7 +37,14 @@ function HtkCacheiterator:__init(...)
 
     local size = self.cachesize
 
-    if not paths.filep(self.filepath) then
+    local function include(kwd)
+        return function(fname) 
+            if fname:find(kwd) then return true end
+        end
+    end
+
+    if not paths.dirp(self.dirpath) then
+        paths.mkdir(self.dirpath)
         local filetopos = {}
         local filetodump = {}
         local runningid = 1
@@ -45,7 +52,7 @@ function HtkCacheiterator:__init(...)
         local outputfile
         local cache = {}
         for done,finished,input,_,path in self.module:uttiterator() do
-            outputfile = self.filepath .. "_part_"..outputfileid
+            outputfile=paths.concat(self.dirpath,"part_"..outputfileid)
             path = readfilelabel(path)
             filetopos[path] = runningid
             filetodump[path] = outputfile
@@ -77,6 +84,7 @@ end
 
 -- Samples are not extra handled, just use the wrapped classes
 function HtkCacheiterator:getSample(labels,  classranges, ...)
+    _htktorch = _htktorch or require 'torchhtk'
     -- The stepsize
     local framewindow = self:dim()
     -- Use a local copy of input to make it thread safe
@@ -97,6 +105,13 @@ function HtkCacheiterator:getSample(labels,  classranges, ...)
     sample = nil
     return inputs
 end
+
+
+function HtkCacheiterator:loadAudioUtterance(audiofilepath,wholeutt)
+    error("Not implemented")
+end
+
+
 
 -- Number of utterances in the dataset
 -- Just wrap it around the moduel
