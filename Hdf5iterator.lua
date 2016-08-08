@@ -96,7 +96,7 @@ function Hdf5iterator:getUtterance(start,stop, ...)
 end
 
 function Hdf5iterator:afterIter(...)
-    -- self._opencache:close()
+    self._opencache:close()
 end
 
 function Hdf5iterator:sampletofeat(samplelengths,...)

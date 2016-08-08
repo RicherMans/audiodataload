@@ -21,5 +21,6 @@ require 'audiodataload.Sequenceiterator'
 require 'audiodataload.HtkDataloader'
 require 'audiodataload.Asynciterator'
 require 'audiodataload.Cacheiterator'
+require 'audiodataload.HtkCacheiterator'
 
 return adl
