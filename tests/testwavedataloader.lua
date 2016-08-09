@@ -91,7 +91,8 @@ function modeltester:testRandomize()
     for i=1,5 do
         local randomized = 0
         local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
-        for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
+        dataloader:shuffle()
+        for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
             if sampletoclass[s] ~= lab[1] then
                 randomized = randomized + 1
             end

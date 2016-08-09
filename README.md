@@ -90,6 +90,10 @@ When this method is called, the subclass methods ```getSample``` method is expli
 
 
 <a name='adl.basedataloader.sampleiterator'></a>
+### shuffle()
+Shuffles the given datasets sample and utterance ids. Useful for mini-batch training.
+
+<a name='adl.basedataloader.sampleiterator'></a>
 ### [iterator] sampleiterator(batchsize [n], epochsize [n])
 
 Returns an iterator on the samples of the . By default the iterator returns the samples of the given utterances in order, thus a single batch will (approximately) contain around 1 single target. For tasks where no sequence training is done, this is the preferred method to train and evaluate the model.

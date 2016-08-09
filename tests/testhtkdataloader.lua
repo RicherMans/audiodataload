@@ -68,7 +68,8 @@ function modeltester:testrandomize()
         local notrandomized = 0
         local tmptargets = torch.Tensor(dataloader:size()):zero()
         local testunique = torch.Tensor(dataloader:size()):zero()
-        for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
+        dataloader:shuffle()
+        for s,e,inp,lab in dataloader:sampleiterator(bs,nil) do
             local bsize = inp:size(1)
 
             for j=1,dataset:size(1) do
@@ -106,7 +107,8 @@ function modeltester:testsize()
     -- Simulate 3 iterations over the dataset
     for i=1,3 do
         local numsamples = 0
-        for s,e,i in dataloader:sampleiterator(2048,nil,true) do
+        dataloader:shuffle()
+        for s,e,i in dataloader:sampleiterator(2048,nil) do
             numsamples = numsamples + i:size(1)
             collectgarbage()
         end
@@ -122,9 +124,10 @@ function modeltester:benchmark()
     print(" ")
     for k,bs in pairs(bsizes) do
         for i=1,3 do
+            dataloader:shuffle()
             collectgarbage()
             tic = torch.tic()
-            for s,e,inp,lab in dataloader:sampleiterator(bs,nil,true) do
+            for s,e,inp,lab in dataloader:sampleiterator(bs,nil) do
                 print(string.format("Sample [%i/%i]: Time for dataloading %.4f",s,e,timer:time().real))
                 timer:reset()
             end 
@@ -161,7 +164,7 @@ function modeltester:testdifferentbatchsize()
     local dataloader = audioload.HtkDataloader{path=filelist}
     -- Just test if any error happen
     for i=1,#batches do
-        for s,e,k,v in dataloader:sampleiterator(batches[i],nil,true)do
+        for s,e,k,v in dataloader:sampleiterator(batches[i],nil)do
 
         end
     end
