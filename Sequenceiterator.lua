@@ -97,7 +97,13 @@ function Sequenceiterator:getSample(labels,  classranges, ...)
         frameend = framestart+(self.seqlen*framewindow) - 1
         sample = self.wrappedmodule:loadAudioUtterance(labels[i],true)
         sample = sample:view(sample:nElement())
-        _input[{{},i}]:copy(sample[{{framestart,frameend}}])
+        if sample:size(1) < frameend then
+            local zerotensor = torch.zeros(frameend)
+            zerotensor[{{1,sample:size(1)}}]:copy(sample)
+            _input[{{},i}]:copy(zerotensor)
+        else
+            _input[{{},i}]:copy(sample[{{framestart,frameend}}])
+        end
     end
     return _input
 end
