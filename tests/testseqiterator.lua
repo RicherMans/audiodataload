@@ -117,5 +117,12 @@ function modeltester:itersamphtk()
     end 
 end
 
+function modeltester:itersamphtklarge()
+    local dataloader = audioload.HtkDataloader(htkfilelist)
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,seqlen=100}
+    for start,all,input,target in seqiter:sampleiterator(128) do
+    end 
+end
+
 tester:add(modeltester)
 tester:run()

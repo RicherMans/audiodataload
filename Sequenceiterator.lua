@@ -92,7 +92,7 @@ function Sequenceiterator:getSample(labels,  classranges, ...)
     local curlabel
 
     for i=1,labels:size(1) do
-        -- Parameter shift is hijakcked from the wrapped module
+        -- Parameter shift is hijacked from the wrapped module
         framestart = (classranges[i] - 1) * self.shift  + 1
         frameend = framestart+(self.seqlen*framewindow) - 1
         sample = self.wrappedmodule:loadAudioUtterance(labels[i],true)
