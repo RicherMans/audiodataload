@@ -99,7 +99,12 @@ function Sequenceiterator:getSample(labels,  classranges, ...)
         sample = sample:view(sample:nElement())
         if sample:size(1) < frameend then
             local zerotensor = torch.zeros(frameend)
-            zerotensor[{{1,sample:size(1)}}]:copy(sample)
+            -- Apply padding from left or right
+            if self.padding == 'left' then
+                zerotensor[{{frameend-sample:size(1)+1,frameend}}]:copy(sample)
+            else
+                zerotensor[{{1,sample:size(1)}}]:copy(sample)
+            end
             _input[{{},i}]:copy(zerotensor)
         else
             _input[{{},i}]:copy(sample[{{framestart,frameend}}])
