@@ -67,9 +67,9 @@ function Sequenceiterator:__init(...)
 
     self._nsamples = numsamples:sum()
 
-    -- Wave data iterator has shift, otherwise just set it to zero
+    -- Wave data iterator has shift, otherwise set to dimension of the wrapped module
     if not self.shift then
-        self.shift = 0
+        self.shift = self:dim()
     end
 
 end
@@ -78,8 +78,8 @@ end
 
 -- Iterator callback functions
 function Sequenceiterator:getSample(labels,  classranges, ...)
-
-    local _input = torch.Tensor(self.seqlen,labels:size(1),self:dim())
+    assert(self.usemaxseqlength == false,"Cannot use this in maxseqlength mode")
+    local _input = torch.Tensor(self.seqlen,labels:size(1),self:dim()):zero()
     -- The Final framesize we gonna extract
     local framewindow = self:dim()
     -- Buffer for audiosample
@@ -93,16 +93,11 @@ function Sequenceiterator:getSample(labels,  classranges, ...)
 
     for i=1,labels:size(1) do
         -- Parameter shift is hijakcked from the wrapped module
-        framestart = (classranges[i] - 1) * ( self.shift ) + 1
-        frameend = framestart+framewindow - 1
-        curlabel = readfilelabel(labels[i])
-        for j=1,self.seqlen do
-            sample = self.wrappedmodule:loadAudioSample(curlabel,framestart,frameend,...)
-            -- Shift the window to the next
-            framestart = framestart + framewindow
-            frameend = frameend + framewindow
-            _input[{{j},{i}}]:copy(sample)
-        end
+        framestart = (classranges[i] - 1) * self.shift  + 1
+        frameend = framestart+(self.seqlen*framewindow) - 1
+        sample = self.wrappedmodule:loadAudioUtterance(labels[i],true)
+        sample = sample:view(sample:nElement())
+        _input[{{},i}]:copy(sample[{{framestart,frameend}}])
     end
     return _input
 end

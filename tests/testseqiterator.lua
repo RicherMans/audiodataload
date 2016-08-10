@@ -32,26 +32,26 @@ function modeltester:init()
     audioload.Sequenceiterator(dataloader,5)
 end
 
-function modeltester:sampleiter()
-    local filepath = wavefilelist
-    local seqlenth = 50
-    local framesize = 100
-    local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator(dataloader,seqlenth)
-    for start,all,input,target in seqiter:sampleiterator(128,nil,true)do
-        tester:asserteq(input:dim(),3)
-        tester:asserteq(input:size(1),seqlenth)
-        tester:asserteq(input:size(3),framesize)
-        tester:asserteq(input:size(2),target:size(1))
-    end
-end
+-- function modeltester:sampleiter()
+--     local filepath = wavefilelist
+--     local seqlenth = 50
+--     local framesize = 100
+--     local dataloader = audioload.WaveDataloader(filepath,framesize)
+--     local seqiter = audioload.Sequenceiterator(dataloader,seqlenth)
+--     for start,all,input,target in seqiter:sampleiterator(128,nil,true)do
+--         tester:asserteq(input:dim(),3)
+--         tester:asserteq(input:size(1),seqlenth)
+--         tester:asserteq(input:size(3),framesize)
+--         tester:asserteq(input:size(2),target:size(1))
+--     end
+-- end
 
 function modeltester:sampleiterlarge()
     local filepath = wavefilelist
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength =true}
-    for start,all,input,target in seqiter:sampleiterator(128,nil,true)do
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader}
+    for start,all,input,target in seqiter:sampleiterator(128,nil)do
         tester:asserteq(input:dim(),3)
         -- tester:asserteq(input:size(1),seqlenth)
         tester:asserteq(input:size(3),framesize)
@@ -66,7 +66,7 @@ function modeltester:uttiter()
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator(dataloader,seqlenth)
     local tic = torch.tic()
-    for start,all,input,target,fpath in seqiter:uttiterator(128,nil,true)do
+    for start,all,input,target,fpath in seqiter:uttiterator(128,nil)do
         tester:asserteq(input:dim(),3)
         tester:asserteq(input:size(1),seqlenth)
         tester:asserteq(input:size(3),framesize)
@@ -75,39 +75,46 @@ function modeltester:uttiter()
     print("\n"..torch.toc(tic))
 end
 
-function modeltester:uttiterlarge()
-    local filepath = wavefilelist
-    local framesize = 500
-    local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator(dataloader,1,true)
-    local tic = torch.tic()
-    for start,all,input,target in seqiter:uttiterator(128,nil)do
-        tester:asserteq(input:dim(),3)
-        tester:asserteq(input:size(3),framesize)
-        tester:asserteq(input:size(2),target:size(1))
-    end
-    print("\n"..torch.toc(tic))
-end
-function modeltester:uttiterfull()
-    local filepath = wavefilelist
-    local framesize = 200
-    local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
-    local tic = torch.tic()
-    for start,all,input,target in seqiter:uttiterator(128,nil,true)do
-        tester:asserteq(input:dim(),3)
-        tester:asserteq(input:size(3),framesize)
-        tester:asserteq(input:size(2),target:size(1))
-    end
-    print("\n"..torch.toc(tic))
-end
+-- function modeltester:uttiterlarge()
+--     local filepath = wavefilelist
+--     local framesize = 500
+--     local dataloader = audioload.WaveDataloader(filepath,framesize)
+--     local seqiter = audioload.Sequenceiterator(dataloader,1,true)
+--     local tic = torch.tic()
+--     for start,all,input,target in seqiter:uttiterator(128,nil)do
+--         tester:asserteq(input:dim(),3)
+--         tester:asserteq(input:size(3),framesize)
+--         tester:asserteq(input:size(2),target:size(1))
+--     end
+--     print("\n"..torch.toc(tic))
+-- end
+-- function modeltester:uttiterfull()
+--     local filepath = wavefilelist
+--     local framesize = 200
+--     local dataloader = audioload.WaveDataloader(filepath,framesize)
+--     local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
+--     local tic = torch.tic()
+--     for start,all,input,target in seqiter:uttiterator(128,nil,true)do
+--         tester:asserteq(input:dim(),3)
+--         tester:asserteq(input:size(3),framesize)
+--         tester:asserteq(input:size(2),target:size(1))
+--     end
+--     print("\n"..torch.toc(tic))
+-- end
 
 function modeltester:iterutthtk()
     local dataloader = audioload.HtkDataloader(htkfilelist)
     local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
     for start,all,input,target in seqiter:uttiterator(5) do
         
-    end
+    end 
+end
+
+function modeltester:itersamphtk()
+    local dataloader = audioload.HtkDataloader(htkfilelist)
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,seqlen=3}
+    for start,all,input,target in seqiter:sampleiterator(128) do
+    end 
 end
 
 tester:add(modeltester)

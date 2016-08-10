@@ -39,12 +39,7 @@ function HtkDataloader:loadAudioSample(audiofilepath,start,stop,...)
     -- The passed start is calculated over the whole dimensions, thus we pass start equally for each iterator
     -- the calculation just reverts the starting point calculation in getsample()
     local sample,err = _htktorch.loadsample(audiofilepath,(start-1)/self:dim() + 1)
-    -- Error happens if were out of range, in this case we return a zero vector. Useful for seqiterator
-    if err == 1 then
-        return torch.zeros(stop-start+1)
-    else
-        return sample
-    end
+    return sample
 
 end
 
@@ -74,7 +69,6 @@ function HtkDataloader:getSample(labels, classranges, ...)
     -- Get the current offset for the data
     for i=1,labels:size(1) do
         framestart = (classranges[i] - 1) * ( framewindow ) + 1
-        frameend = framestart+framewindow - 1
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         inputs[i]:copy(sample)
     end

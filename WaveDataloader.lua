@@ -56,12 +56,12 @@ end
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)    
     local audiobuf = audio.load(audiofilepath)
-    -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
-    if stop > audiobuf:size(1) then
-        return torch.zeros(stop-start + 1)
-    else
-        return audiobuf:sub(start,stop)
-    end
+    -- -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
+    -- if stop > audiobuf:size(1) then
+    --     return torch.zeros(stop-start + 1)
+    -- else
+    return audiobuf:sub(start,stop)
+    -- end
 
 end
 
@@ -83,8 +83,6 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
     -- return the whole utterance, for single batch cases
     if wholeutt then targetsize = modaudiosize end
     local buf = torch.zeros(targetsize)
-
-
     buf:sub(1,targetsize):copy(audioloaded:sub(1,targetsize))
     -- end
     return buf:view(targetsize/self:dim(),self:dim())
