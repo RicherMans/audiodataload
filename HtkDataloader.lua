@@ -38,14 +38,13 @@ end
 function HtkDataloader:loadAudioSample(audiofilepath,start,stop,...)
     -- The passed start is calculated over the whole dimensions, thus we pass start equally for each iterator
     -- the calculation just reverts the starting point calculation in getsample()
-    return _htktorch.loadsample(audiofilepath,(start-1)/self:dim() + 1)
-    -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
-    -- TODO: Fix that problem
-    -- if stop - start > htkbuf:size(1) then
-    --     return torch.zeros(stop-start + 1)
-    -- else
-    --     return htkbuf
-    -- end
+    local sample,err = _htktorch.loadsample(audiofilepath,(start-1)/self:dim() + 1)
+    -- Error happens if were out of range, in this case we return a zero vector. Useful for seqiterator
+    if err == 1 then
+        return torch.zeros(stop-start+1)
+    else
+        return sample
+    end
 
 end
 

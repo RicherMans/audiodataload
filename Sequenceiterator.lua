@@ -77,7 +77,7 @@ end
 
 
 -- Iterator callback functions
-function Sequenceiterator:getSample(labels,  ids, ...)
+function Sequenceiterator:getSample(labels,  classranges, ...)
 
     local _input = torch.Tensor(self.seqlen,labels:size(1),self:dim())
     -- The Final framesize we gonna extract
@@ -90,10 +90,10 @@ function Sequenceiterator:getSample(labels,  ids, ...)
     local frameend = -1
     -- Get the current datalabel
     local curlabel
-    -- print(self.sampletoclassrange)
+
     for i=1,labels:size(1) do
         -- Parameter shift is hijakcked from the wrapped module
-        framestart = (self.sampletoclassrange[ids[i]] - 1) * ( self.shift ) + 1
+        framestart = (classranges[i] - 1) * ( self.shift ) + 1
         frameend = framestart+framewindow - 1
         curlabel = readfilelabel(labels[i])
         for j=1,self.seqlen do
@@ -117,7 +117,6 @@ function Sequenceiterator:loadAudioUtterance(audiofilepaths,...)
     for i=1,audiofilepaths:size(1) do
         audiofeat = self.wrappedmodule:loadAudioUtterance(audiofilepaths[i],true)
         local origaudiosize = audiofeat:nElement()
-
         -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
         local modaudiosize = floor(origaudiosize/framewindow) * framewindow
         -- Try to fit only the seqlen utterances in a whole in

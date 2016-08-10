@@ -12,16 +12,28 @@ local audioload = paths.dofile('../init.lua')
 
 local tester = torch.Tester()
 
-local filelist = arg[1]
+local initcheck  = argcheck{
+    {
+        name='wavedatafile',
+        type='string',
+        help="Wavefile to run experiments with",
+    },
+    {
+        name='htkdatafile',
+        type='string',
+        help='HTK filelist'
+    }
+}
+local wavefilelist,htkfilelist = initcheck(arg[1],arg[2])
 
 function modeltester:init()
-    local filepath = filelist
+    local filepath = wavefilelist
     local dataloader = audioload.WaveDataloader(filepath,100)
     audioload.Sequenceiterator(dataloader,5)
 end
 
 function modeltester:sampleiter()
-    local filepath = filelist
+    local filepath = wavefilelist
     local seqlenth = 50
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
@@ -35,7 +47,7 @@ function modeltester:sampleiter()
 end
 
 function modeltester:sampleiterlarge()
-    local filepath = filelist
+    local filepath = wavefilelist
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength =true}
@@ -48,7 +60,7 @@ function modeltester:sampleiterlarge()
 end
 
 function modeltester:uttiter()
-    local filepath = filelist
+    local filepath = wavefilelist
     local seqlenth = 50
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
@@ -64,7 +76,7 @@ function modeltester:uttiter()
 end
 
 function modeltester:uttiterlarge()
-    local filepath = filelist
+    local filepath = wavefilelist
     local framesize = 500
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator(dataloader,1,true)
@@ -77,7 +89,7 @@ function modeltester:uttiterlarge()
     print("\n"..torch.toc(tic))
 end
 function modeltester:uttiterfull()
-    local filepath = filelist
+    local filepath = wavefilelist
     local framesize = 200
     local dataloader = audioload.WaveDataloader(filepath,framesize)
     local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
@@ -89,9 +101,13 @@ function modeltester:uttiterfull()
     end
     print("\n"..torch.toc(tic))
 end
-if not filelist or filelist == "" then
-    print("Please pass a wave filelist as first argument")
-    return
+
+function modeltester:iterutthtk()
+    local dataloader = audioload.HtkDataloader(htkfilelist)
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
+    for start,all,input,target in seqiter:uttiterator(5) do
+        
+    end
 end
 
 tester:add(modeltester)
