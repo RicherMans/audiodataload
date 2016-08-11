@@ -167,22 +167,22 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:size()
 
-    if not ( self.sampletofeatid and self.sampletoclassrange ) then
-        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths,self.targets)
-    end
-
     local min = math.min
+
+    local sampletofeatid,sampletoclassrange = self:sampletofeat(self.samplelengths)
 
     self:beforeIter(unpack(dots))
 
     local stop,bs
     local batch
+    -- Buffers
     local featids,classranges = torch.LongTensor(),torch.LongTensor()
     local labels,target = torch.CharTensor(),torch.LongTensor()
     self._cursample = 1
     -- build iterator
     return function()
         if self._cursample > epochsize then
+            self:reset()
             self:afterIter(unpack(dots))
             return
         end
@@ -192,9 +192,9 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
         stop = self._cursample + bs - 1
         local cursampleids = self.sampleids[{{self._cursample,stop}}]
         -- the row from the file lists
-        featids:index(self.sampletofeatid,1,cursampleids)
+        featids:index(sampletofeatid,1,cursampleids)
         -- The range of the current sample within the class
-        classranges:index(self.sampletoclassrange,1,cursampleids)
+        classranges:index(sampletoclassrange,1,cursampleids)
 
         -- Labels are passed to the getsample to obtain the datavector
         labels:index(self.filelabels,1,featids)
@@ -224,6 +224,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     return function()
         if self._curutterance > epochsize then
             self:afterIter(unpack(dots))
+            self:reset()
             return
         end
 
