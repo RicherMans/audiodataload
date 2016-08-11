@@ -78,7 +78,6 @@ end
 
 -- Iterator callback functions
 function Sequenceiterator:getSample(labels,  classranges, ...)
-    assert(self.usemaxseqlength == false,"Cannot use this in maxseqlength mode")
     local _input = torch.Tensor(self.seqlen,labels:size(1),self:dim()):zero()
     -- The Final framesize we gonna extract
     local framewindow = self:dim()
