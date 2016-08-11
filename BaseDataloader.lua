@@ -65,7 +65,7 @@ local basecheck = argcheck{
 function BaseDataloader:__init(...)
     local filename = basecheck(...)
 
-    local filelabels,targets,samplelengths,overall_samples = self:_readfilename(filename)
+    local filelabels,targets,samplelengths = self:_readfilename(filename)
 
     -- Set the filelabels and targets for the subclasses
     self.filelabels = filelabels
@@ -75,7 +75,7 @@ function BaseDataloader:__init(...)
     -- set usize()
     self._uttsize = self.filelabels:size(1)
     -- set size()
-    self._nsamples = overall_samples
+    self._nsamples = self.samplelengths:sum()
     -- Set nClasses()
     self._numbertargets = torch.max(self.targets,1):squeeze()
 
@@ -112,11 +112,9 @@ function BaseDataloader:_readfilename(filename)
 
     filelabels:resize(nlines, maxPathLength):fill(0)
     targets:resize(nlines,numbertargets):fill(-1)
-    local str_data = filelabels:data()
+    local filelabel_data = filelabels:data()
     local target_data = targets:data()
     local targetcount = 0
-
-    local overall_samples = 0
 
     local headerlengths = torch.LongTensor(nlines)
     local headerlengths_data = headerlengths:data()
@@ -134,15 +132,12 @@ function BaseDataloader:_readfilename(filename)
         end
         -- Get from any subclass the number of audio samples this file has
         audiosamples = self:getNumAudioSamples(curline[1])
-        -- Add to the samples, but do not use the last audiochunk ( since it is not the same size as the others)
-        overall_samples = overall_samples + audiosamples
-
-        -- Load the current header
+        -- Save the current sample length
         headerlengths_data[linecount] = audiosamples
         -- Copy the current feature path into the featpath chartensor
-        ffi.copy(str_data,curline[1])
+        ffi.copy(filelabel_data,curline[1])
         -- Skip with the offset of the maxPathLength
-        str_data = str_data + maxPathLength
+        filelabel_data = filelabel_data + maxPathLength
         linecount = linecount + 1
     end
     return filelabels,targets,headerlengths,overall_samples
@@ -169,7 +164,9 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
 
     local min = math.min
 
-    local sampletofeatid,sampletoclassrange = self:sampletofeat(self.samplelengths)
+    if not self.sampletofeatid and not self.sampletoclassrange then
+         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
+    end
 
     self:beforeIter(unpack(dots))
 
@@ -192,9 +189,9 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
         stop = self._cursample + bs - 1
         local cursampleids = self.sampleids[{{self._cursample,stop}}]
         -- the row from the file lists
-        featids:index(sampletofeatid,1,cursampleids)
+        featids:index(self.sampletofeatid,1,cursampleids)
         -- The range of the current sample within the class
-        classranges:index(sampletoclassrange,1,cursampleids)
+        classranges:index(self.sampletoclassrange,1,cursampleids)
 
         -- Labels are passed to the getsample to obtain the datavector
         labels:index(self.filelabels,1,featids)
