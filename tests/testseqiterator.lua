@@ -61,16 +61,15 @@ end
 
 function modeltester:uttiter()
     local filepath = wavefilelist
-    local seqlenth = 50
     local framesize = 100
     local dataloader = audioload.WaveDataloader(filepath,framesize)
-    local seqiter = audioload.Sequenceiterator(dataloader,seqlenth)
+    local seqiter = audioload.Sequenceiterator{wrappedmodule=dataloader,usemaxseqlength=true}
     local tic = torch.tic()
-    for start,all,input,target,fpath in seqiter:uttiterator(128,nil)do
+    for start,all,input,target,fpath in seqiter:uttiterator(3,nil)do
         tester:asserteq(input:dim(),3)
-        tester:asserteq(input:size(1),seqlenth)
         tester:asserteq(input:size(3),framesize)
         tester:asserteq(input:size(2),target:size(1))
+        print(input[1])
     end
     print("\n"..torch.toc(tic))
 end
@@ -123,6 +122,7 @@ function modeltester:itersamphtklarge()
     for start,all,input,target in seqiter:sampleiterator(128) do
     end 
 end
+
 
 tester:add(modeltester)
 tester:run()

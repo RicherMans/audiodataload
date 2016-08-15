@@ -78,7 +78,7 @@ end
 
 -- Iterator callback functions
 function Sequenceiterator:getSample(labels,  classranges, ...)
-    local _input = torch.Tensor(self.seqlen,labels:size(1),self:dim()):zero()
+    local _input = torch.zeros(self.seqlen,labels:size(1),self:dim())
     -- The Final framesize we gonna extract
     local framewindow = self:dim()
     -- Buffer for audiosample
@@ -118,7 +118,7 @@ function Sequenceiterator:loadAudioUtterance(audiofilepaths,...)
     -- Final size of the output utterance
     local targetsize = self:dim() * self.seqlen
     local framewindow = self:dim()
-    local buf = torch.Tensor(self.seqlen,audiofilepaths:size(1),self:dim())
+    local buf = torch.zeros(self.seqlen,audiofilepaths:size(1),self:dim())
     for i=1,audiofilepaths:size(1) do
         audiofeat = self.wrappedmodule:loadAudioUtterance(audiofilepaths[i],true)
         local origaudiosize = audiofeat:nElement()
