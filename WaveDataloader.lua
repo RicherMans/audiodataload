@@ -37,8 +37,13 @@ end
 
 local max = math.max
 
+-- Loads a wavefile and rescales the output ( there is a small bug with libsox that it scales all values by 2^16)
+local function loadwave(filepath)
+    return audio.load(filepath):div(2^16)
+end
+
 function WaveDataloader:getNumAudioSamples(filename)
-    local feat = audio.load(filename)
+    local feat = loadwave(filename)
     return max(1,calcnumframes(feat:size(1),self:dim(),self.shift))
 end
 
@@ -55,7 +60,7 @@ end
 
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
 function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)    
-    local audiobuf = audio.load(audiofilepath)
+    local audiobuf = loadwave(audiofilepath)
     -- -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
     -- if stop > audiobuf:size(1) then
     --     return torch.zeros(stop-start + 1)
@@ -74,7 +79,7 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
     audiofilepath = readfilelabel(audiofilepath)
 
     wholeutt = wholeutt or ( wholeutt ~= nil or false )
-    local audioloaded = audio.load(audiofilepath)
+    local audioloaded = loadwave(audiofilepath)
     local origaudiosize = audioloaded:size(1)
     -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
     local modaudiosize = floor(origaudiosize/self:dim()) * self:dim()
