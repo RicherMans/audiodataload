@@ -173,15 +173,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
 
     self.sampletofeatid, self.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
 
-    -- Randomized ids, passed to cacheiterator
-    local sampleids = torch.LongTensor()
-    if random then
-        -- Shuffle the sample list
-        -- Apply the randomization
-        sampleids = sampleids:randperm(self:size())
-    else
-        sampleids = sampleids:range(1,self:size())
-    end
+
 
     local min = math.min
 
@@ -206,7 +198,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
 
             stop = start + bs - 1
             -- Need to keep these variables local for the threads
-            local cursampleids = sampleids[{{start,stop}}]
+            local cursampleids = self.sampleids[{{start,stop}}]
             -- the row from the file lists
             local featids = self.sampletofeatid:index(1,cursampleids)
             -- The range of the current sample within the class
