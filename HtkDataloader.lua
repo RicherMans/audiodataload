@@ -69,6 +69,7 @@ function HtkDataloader:getSample(labels, classranges, ...)
     -- Get the current offset for the data
     for i=1,labels:size(1) do
         framestart = (classranges[i] - 1) * ( framewindow ) + 1
+        frameend = framestart + framewindow - 1 
         sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
         inputs[i]:copy(sample)
     end
