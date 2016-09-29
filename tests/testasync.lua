@@ -160,21 +160,26 @@ function modeltester:meanstdnormalizationexample()
     local datasize = asynciter:size()
     local samplesize = 300
     -- Simulate mean sampling
-    local iter = asynciter:sampleiterator(samplesize,-1,true)
+    local iter = asynciter:sampleiterator(samplesize,-1)
     local s,e,samples = iter()
     local maxsize = math.min(datasize,samplesize)
     tester:assert(samples:size(1) == maxsize,"Sample size "..samples:size(1).." should be: "..maxsize)
 
-    iter = asynciter:sampleiterator(samplesize,-1,true)
+    iter = asynciter:sampleiterator(samplesize,-1)
     local s,e,samples = iter()
     local maxsize = math.min(datasize,samplesize)
     tester:assert(samples:size(1) == maxsize,"Sample size "..samples:size(1).." should be: "..maxsize)
 
-    for k,v,inp,lab in asynciter:sampleiterator(128,-1,true) do
+    asynciter:reset()
+
+
+    for k,v,inp,lab in asynciter:sampleiterator(128,-1) do
         tester:assert(inp:size(1) <= 128)
     end
 
-    for k,v,inp,lab in asynciter:sampleiterator(128,-1,true) do
+    asynciter:reset()
+
+    for k,v,inp,lab in asynciter:sampleiterator(128,-1) do
         tester:assert(inp:size(1) <= 128)
     end
 end
@@ -205,7 +210,7 @@ function modeltester:randomizedtest()
     tester:assert(numvalues == numsamples)
     local maxrandomizeerr = math.ceil(numsamples/100)
 
-
+    asynciter:shuffle()
     -- Emulate some 10 iterations over the data
     print("Running 2 iterations ")
     for i=1,2 do
@@ -218,7 +223,7 @@ function modeltester:randomizedtest()
         for i=1,numsamples do
             startpoints[#startpoints+1] = i
         end
-        for s,e,inp,lab in asynciter:sampleiterator(1,nil,true) do
+        for s,e,inp,lab in asynciter:sampleiterator(1,nil) do
             itercount = itercount + 1
             if valuetolab[inp[1][1]] and valuetolab[inp[1][1]] == lab[1] then
                 tmpnumvalues = tmpnumvalues - 1
@@ -238,10 +243,10 @@ function modeltester:randomizedtest()
             end
             tester:assert(inp:size(1) == lab:size(1))
         end
-        print("Iteration "..i.." done")  
+        print("Iteration "..i.." done")
         tester:eq(tmplabcount,torch.zeros(asynciter:nClasses()),"Labels are not the same in iteration "..i)
-    
-        -- Check if all indices were visited        
+
+        -- Check if all indices were visited
         tester:assert(next(startpoints) == nil)
         -- Check if the randomization works, we use some artificial threshold. Not that important if that fails by some larger count
         tester:assert(randomizecount < maxrandomizeerr,"Error in iteration "..i..", randomize count is "..randomizecount .. "/"..numsamples)

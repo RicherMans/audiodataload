@@ -47,6 +47,9 @@ function Asynciterator:__init(...)
 
     local modstr = torch.serialize(self.module)
 
+    self.sampleids = self.module.sampleids
+    self.uttids = self.module.uttids
+
     local mainSeed = os.time()
      -- build a Threads pool, or use the last one initilized
     self.threads = threads.Threads(
@@ -162,18 +165,14 @@ function Asynciterator:asyncGet()
 end
 
 
-function Asynciterator:sampleiterator(batchsize, epochsize, random,...)
+function Asynciterator:sampleiterator(batchsize, epochsize, ...)
     batchsize = batchsize or 16
     local dots = {...}
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:size()
 
-    random = random or false
-
 
     self.sampletofeatid, self.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
-
-
 
     local min = math.min
 
@@ -235,7 +234,12 @@ end
 
 function Asynciterator:reset()
     self:collectgarbage()
+    self.recvqueue = self.recvqueue.new()
     self.threads:synchronize()
+    -- Finish the job
+    while not self.recvqueue:empty() do
+        self:asyncGet()
+    end
 end
 
 function Asynciterator:nClasses()
