@@ -64,7 +64,8 @@ function modeltester:iterwavedataloaderrandom()
     for i=1,3 do
         local randomized = 0
         local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
-        for s,e,inp,lab in dataloader:sampleiterator(1,nil,true) do
+        dataloader:shuffle()
+        for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
             if sampletoclass[s] ~= lab[1] then
                 randomized = randomized + 1
             end
@@ -83,40 +84,133 @@ function modeltester:iterwavedataloader()
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
     local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
+    local numiters = 10
 
-    local it = wrapper:sampleiterator(128,nil,true)
-    local tic = torch.tic()
-    for i,k,v,d in it do
-        -- print(i,k,v,d)
+    local best = 100000
+    local avg = 0
+    for p=1,numiters do
+        local tic = torch.tic()
+        wrapper:shuffle()
+        for i,k,v,d in wrapper:sampleiterator(128,nil) do
+            -- print(i,k,v,d)
+        end
+        local time = torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
     end
-    print("\nHDF took " .. torch.toc(tic))
+    print("\nHDF, "..numiters.." iterations, best took " .. best .. " avg: "..avg/numiters)
 
-    it = dataloader:sampleiterator(128,nil,true)
     tic = torch.tic()
-    for i,k,v,d in it do
-
+    best = 100000
+    avg = 0
+    for p=1,numiters do
+        local tic = torch.tic()
+        dataloader:shuffle()
+        for i,k,v,d in dataloader:sampleiterator(128,nil) do
+            -- print(i,k,v,d)
+        end
+        local time= torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
     end
-    print("\nWave took " .. torch.toc(tic))
+    print("\nWav, "..numiters.." iterations, best took " .. best.." avg: "..avg/numiters)
+    sys.fexecute("rm myfile2")
+    local chunked = audioload.Hdf5iterator{module=dataloader,filepath='myfile2',chunksize=dataloader:dim()}
+
+    local best = 100000
+    local avg = 0
+    for p=1,numiters do
+        local tic = torch.tic()
+        wrapper:shuffle()
+        for i,k,v,d in wrapper:sampleiterator(128,nil) do
+            -- print(i,k,v,d)
+        end
+        local time = torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
+    end
+    print("\nHDF (chunked), "..numiters.." iterations, best took " .. best .. " avg: "..avg/numiters)
     sys.fexecute("rm myfile2")
 end
 
 function modeltester:benchmarkhtkiter()
     local dataloader = audioload.HtkDataloader(htkfilelist)
-    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2',chunksize=dataloader:dim()}
+    local wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
 
-    local it = wrapper:sampleiterator(128,nil,true)
+    local numiters=2
     local tic = torch.tic()
-    for i,k,v,d in it do
-        -- print(i,k,v,d)
-    end
-    print("\nHDF took " .. torch.toc(tic))
+    local best = 100000
+    local avg = 0
 
-    it = dataloader:sampleiterator(128,nil,true)
-    tic = torch.tic()
-    for i,k,v,d in it do
-
+    for p=1,numiters do
+        local tic = torch.tic()
+        for i,k,v,d in dataloader:sampleiterator(128) do
+            -- print(i,k,v,d)
+        end
+        local time= torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
+        collectgarbage()
     end
-    print("\nHTK iterator took " .. torch.toc(tic))
+    print("\nHTK (nonshuf), numiters iterations, best took " .. best.." avg: "..avg/numiters)
+    local best = 100000
+    local avg = 0
+    for p=1,numiters do
+        local tic = torch.tic()
+        dataloader:shuffle()
+        for i,k,v,d in dataloader:sampleiterator(128) do
+            -- print(i,k,v,d)
+        end
+        local time= torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
+        collectgarbage()
+    end
+    print("\nHTK (shuffle), numiters iterations, best took " .. best.." avg: "..avg/numiters)
+    local best = 100000
+    local avg = 0
+    for p=1,numiters do
+        local tic = torch.tic()
+        wrapper:shuffle()
+        for i,k,v,d in wrapper:sampleiterator(128) do
+            -- print(i,k,v,d)
+        end
+        local time = torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
+    end
+    print("\nHDF (chunked), numiters iterations, best took " .. best .. " avg: "..avg/numiters)
+
+    sys.fexecute("rm myfile2")
+    wrapper = audioload.Hdf5iterator{module=dataloader,filepath='myfile2'}
+    local best = 100000
+    local avg = 0
+    for p=1,numiters do
+        local tic = torch.tic()
+        wrapper:shuffle()
+        for i,k,v,d in wrapper:sampleiterator(128) do
+            -- print(i,k,v,d)
+        end
+        local time = torch.toc(tic)
+        avg = avg + time
+        if time < best then
+            best = time
+        end
+        collectgarbage()
+    end
+    print("\nHDF, 100 iterations, best took " .. best .. " avg: "..avg/numiters)
     sys.fexecute("rm myfile2")
 end
 

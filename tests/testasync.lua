@@ -76,7 +76,6 @@ function modeltester:testsampleiteratormultipleHTK()
 
     local classsizes= torch.Tensor(asyncdata:nClasses()):zero()
     for s,e,inp,lab in asyncdata:sampleiterator(128) do
-
         tester:assert(inp:size(1) == lab:size(1))
         local addone = torch.Tensor(lab:size(1)):fill(1)
         classsizes:indexAdd(1,lab:long(),addone)
@@ -173,13 +172,13 @@ function modeltester:meanstdnormalizationexample()
     asynciter:reset()
 
 
-    for k,v,inp,lab in asynciter:sampleiterator(128,-1) do
+    for k,v,inp,lab in asynciter:sampleiterator(128) do
         tester:assert(inp:size(1) <= 128)
     end
 
     asynciter:reset()
 
-    for k,v,inp,lab in asynciter:sampleiterator(128,-1) do
+    for k,v,inp,lab in asynciter:sampleiterator(128) do
         tester:assert(inp:size(1) <= 128)
     end
 end
@@ -195,7 +194,7 @@ function modeltester:randomizedtest()
     local labcount = torch.zeros(asynciter:nClasses())
     local dataset = torch.FloatTensor(asynciter:size(),asynciter:dim())
     local targets = torch.LongTensor(asynciter:size(),1)
-    for s,e,inp,lab in asynciter:sampleiterator(1,nil) do
+    for s,e,inp,lab in asynciter:sampleiterator(1) do
         valuetolab[inp[1][1]] = lab[1]
         labcount[lab[1]] = labcount[lab[1]] + 1
         numvalues = numvalues + 1

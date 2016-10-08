@@ -35,7 +35,7 @@ function Hdf5iterator:__init(...)
     if not paths.filep(self.filepath) then
         -- Dumping filecontent first into hdf5
         local uttiterator = self.module:uttiterator()
-        -- Hijack the module, to force it to iterate over the whole utterance
+        -- Hijack the module, to force it to iterate over the whole utterance ( for sequenceiterator )
         local maxseqlength = self.module.usemaxseqlength or false
         self.module.usemaxseqlength = true
         local hdf5write = hdf5.open(self.filepath,'w')
