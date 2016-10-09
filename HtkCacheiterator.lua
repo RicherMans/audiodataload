@@ -6,7 +6,8 @@ local initcheck = argcheck{
     {
         name='module',
         type='adl.BaseDataloader',
-        help="The module to wrap around",
+        help="The module to wrap around, if nil is passed we assume the data was already preprocessed",
+        opt=true,
     },
     {
         name='dirpath',
@@ -36,21 +37,14 @@ end
 function HtkCacheiterator:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
-    for k,v in pairs(self.module) do self[k] = v end
 
-    _htktorch = _htktorch or require 'torchhtk'
-
-    local size = self.cachesize
-    self.doshuffle = false
-
-    local function include(kwd)
-        return function(fname)
-            if fname:find(kwd) then return true end
-        end
-    end
-
+    -- In case the module is passed and the dirpath is not empty
     if not paths.dirp(self.dirpath) then
+        for k,v in pairs(self.module) do self[k] = v end
+        _htktorch = _htktorch or require 'torchhtk'
         paths.mkdir(self.dirpath)
+        local size = self.cachesize
+        self.doshuffle = false
         local dumps = {}
         local runningid = 1
         local outputfileid = 1
@@ -82,6 +76,34 @@ function HtkCacheiterator:__init(...)
         end
 
         self.dumps = dumps
+    else
+        -- Load from the preexisting cache
+        self.dumps = {}
+        self.module = {}
+        local samplesize,dim = 0,0,0
+        local sample,target
+        local ntargets = -1
+        for file in paths.iterfiles(self.dirpath) do
+            local filepath = paths.concat(self.dirpath,file)
+            self.dumps[#self.dumps + 1] = filepath
+            sample = torch.load(filepath).data
+            target = torch.load(filepath).target
+            samplesize = samplesize + sample:size(1)
+            dim = sample:size(2)
+            ntargets = math.max(ntargets,target:max())
+        end
+        self.module.dim = function()
+            return dim
+        end
+        self.module.usize = function()
+            return samplesize
+        end
+        self.module.size = function()
+            return samplesize
+        end
+        self.module.nClasses = function()
+            return ntargets
+        end
     end
 end
 
@@ -104,10 +126,6 @@ function HtkCacheiterator:sampleiterator(batchsize,epochsize,...)
     epochsize = epochsize > 0 and epochsize or self:size()
 
     local min = math.min
-
-    if not self.sampletofeatid and not self.sampletoclassrange then
-         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
-    end
 
     local wrap = coroutine.wrap
     local yield = coroutine.yield
