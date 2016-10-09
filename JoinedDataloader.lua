@@ -167,6 +167,7 @@ function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
                 end
 
                 local inputbatches,targetbatches = batchfeat(input,target,batchsize)
+                collectgarbage()
                 return {size,inputbatches,targetbatches}
             end
             mthreads:addjob(
