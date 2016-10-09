@@ -13,6 +13,13 @@ local initcheck = argcheck{
         name='dirpath',
         type='string',
         help="The directory where the parts are dumped to",
+        opt=true
+    },
+    {
+        name='loadfile',
+        type='string',
+        help="A list of files which is loaded into the Iterator",
+        opt=true
     },
     {
         name='cachesize',
@@ -39,9 +46,8 @@ function JoinedDataloader:__init(...)
     for k,v in pairs(args) do self[k] = v end
 
     -- In case the module is passed and the dirpath is not empty
-    if not paths.dirp(self.dirpath) then
+    if self.dirpath ~= nil and not paths.dirp(self.dirpath) then
         for k,v in pairs(self.module) do self[k] = v end
-        _htktorch = _htktorch or require 'torchhtk'
         paths.mkdir(self.dirpath)
         local size = self.cachesize
         self.doshuffle = false
@@ -84,10 +90,9 @@ function JoinedDataloader:__init(...)
         local sample,target
         local ntargets = -1
         local datapiece
-        for file in paths.iterfiles(self.dirpath) do
-            local filepath = paths.concat(self.dirpath,file)
-            self.dumps[#self.dumps + 1] = filepath
-            datapiece = torch.load(filepath)
+        for file in io.lines(self.loadfile) do
+            self.dumps[#self.dumps + 1] = file
+            datapiece = torch.load(file)
             sample = datapiece.data
             target = datapiece.target
             samplesize = samplesize + sample:size(1)
