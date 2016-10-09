@@ -17,7 +17,7 @@ local initcheck = argcheck{
         name='cachesize',
         type='number',
         help="If newfile is provided, this arguments specifies the average chunksize for a deflated file, thus also enabling deflation.",
-        default=1000,
+        default=10000,
     }
 
 }
