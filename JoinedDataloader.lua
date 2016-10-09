@@ -29,7 +29,7 @@ local function dump(cache,targets,outputfile)
     local targettensor = torch.concat(targets,1)
     local tensor = {
         data = datatensor,
-        target = targettensor
+        target = targettensor,
     }
     torch.save(outputfile,tensor)
 end
@@ -83,11 +83,13 @@ function JoinedDataloader:__init(...)
         local samplesize,dim = 0,0,0
         local sample,target
         local ntargets = -1
+        local datapiece
         for file in paths.iterfiles(self.dirpath) do
             local filepath = paths.concat(self.dirpath,file)
             self.dumps[#self.dumps + 1] = filepath
-            sample = torch.load(filepath).data
-            target = torch.load(filepath).target
+            datapiece = torch.load(filepath)
+            sample = datapiece.data
+            target = datapiece.target
             samplesize = samplesize + sample:size(1)
             dim = sample:size(2)
             ntargets = math.max(ntargets,target:max())
