@@ -1,5 +1,5 @@
 local adl = require 'audiodataload._base'
-local HtkCacheiterator = torch.class('adl.HtkCacheiterator', 'adl.BaseDataloader',adl)
+local JoinedDataloader = torch.class('adl.JoinedDataloader', 'adl.BaseDataloader',adl)
 
 local initcheck = argcheck{
     pack=true,
@@ -34,7 +34,7 @@ local function dump(cache,targets,outputfile)
     torch.save(outputfile,tensor)
 end
 
-function HtkCacheiterator:__init(...)
+function JoinedDataloader:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
 
@@ -113,13 +113,13 @@ local function batchfeat(feats,targets,size)
         targets:split(size,1)
 end
 
-function HtkCacheiterator:shuffle()
+function JoinedDataloader:shuffle()
     self.doshuffle = true
 end
 
 
 
-function HtkCacheiterator:sampleiterator(batchsize,epochsize,...)
+function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
     batchsize = batchsize or 16
     local dots = {...}
     epochsize = epochsize or -1
@@ -168,26 +168,26 @@ function HtkCacheiterator:sampleiterator(batchsize,epochsize,...)
 end
 
 
-function HtkCacheiterator:loadAudioUtterance(audiofilepath,wholeutt)
+function JoinedDataloader:loadAudioUtterance(audiofilepath,wholeutt)
     error("Not implemented")
 end
 
 -- Number of utterances in the dataset
 -- Just wrap it around the moduel
-function HtkCacheiterator:usize()
+function JoinedDataloader:usize()
     return self.module:usize()
 end
 
 -- Returns the sample size of the dataset
-function HtkCacheiterator:size()
+function JoinedDataloader:size()
     return self.module:size()
 end
 
 -- Returns the data dimensions
-function HtkCacheiterator:dim()
+function JoinedDataloader:dim()
     return self.module:dim()
 end
 
-function HtkCacheiterator:nClasses()
+function JoinedDataloader:nClasses()
     return self.module:nClasses()
 end
