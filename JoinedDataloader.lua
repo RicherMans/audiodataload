@@ -29,7 +29,7 @@ local function dump(cache,targets,outputfile)
     local targettensor = torch.concat(targets,1)
     local tensor = {
         data = datatensor,
-        target = targettensor
+        target = targettensor,
     }
     torch.save(outputfile,tensor)
 end
@@ -83,11 +83,13 @@ function JoinedDataloader:__init(...)
         local samplesize,dim = 0,0,0
         local sample,target
         local ntargets = -1
+        local datapiece
         for file in paths.iterfiles(self.dirpath) do
             local filepath = paths.concat(self.dirpath,file)
             self.dumps[#self.dumps + 1] = filepath
-            sample = torch.load(filepath).data
-            target = torch.load(filepath).target
+            datapiece = torch.load(filepath)
+            sample = datapiece.data
+            target = datapiece.target
             samplesize = samplesize + sample:size(1)
             dim = sample:size(2)
             ntargets = math.max(ntargets,target:max())
@@ -133,8 +135,18 @@ function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
     local fname,size = nil,0
     local input,target = torch.Tensor(),torch.LongTensor()
 
+    local ndumps = #self.dumps
+    local dumpids = torch.LongTensor()
+    -- Shuffle the order of dumps and the content of the dumps
+    if self.doshuffle then
+        dumpids = dumpids:randperm(ndumps)
+    else
+        dumpids = dumpids:range(1,ndumps)
+    end
+
     local function loaddataiter()
-        for k,fname in ipairs(self.dumps) do
+        for i=1,dumpids:size(1) do
+            local fname = self.dumps[dumpids[i]]
             if fname == nil then return end
             local function loaddata(datafname)
                 local data = torch.load(datafname)
