@@ -23,9 +23,14 @@ local initcheck = argcheck{
 }
 
 
-local function dump(cache,outputfile)
-    local tensor = torch.concat(cache,1)
-    _htktorch.write(outputfile,tensor,"USER")
+local function dump(cache,targets,outputfile)
+    local datatensor = torch.concat(cache,1)
+    local targettensor = torch.concat(targets,1)
+    local tensor = {
+        data = datatensor,
+        target = targettensor
+    }
+    torch.save(outputfile,tensor)
 end
 
 function HtkCacheiterator:__init(...)
@@ -36,82 +41,118 @@ function HtkCacheiterator:__init(...)
     _htktorch = _htktorch or require 'torchhtk'
 
     local size = self.cachesize
+    self.doshuffle = false
 
     local function include(kwd)
-        return function(fname) 
+        return function(fname)
             if fname:find(kwd) then return true end
         end
     end
 
     if not paths.dirp(self.dirpath) then
         paths.mkdir(self.dirpath)
-        local filetopos = {}
-        local filetodump = {}
+        local dumps = {}
         local runningid = 1
         local outputfileid = 1
         local outputfile
-        local cache = {}
-        for done,finished,input,_,path in self.module:uttiterator() do
-            outputfile=paths.concat(self.dirpath,"part_"..outputfileid)
+        local datacache = {}
+        local targetcache = {}
+        for done,finished,input,target,path in self.module:uttiterator() do
+            outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
             path = readfilelabel(path)
-            filetopos[path] = runningid
-            filetodump[path] = outputfile
             runningid = runningid + input:size(1)
-            cache[#cache+1] = input
+            datacache[#datacache+1] = input
+            -- Adjust the sizes of the input and the target, since target is only a 1 dim tensor
+            targetcache[#targetcache+ 1 ] = target:expand(input:size(1))
             if runningid > size then
+                dumps[#dumps+1] = outputfile
                 outputfileid = outputfileid + 1
                 runningid = 1
-                dump(cache,outputfile)
-                cache=nil
-                cache={}
+                dump(datacache,targetcache,outputfile)
+                targetcache = nil
+                targetcache = {}
+                datacache=nil
+                datacache={}
             end
         end
-        -- Dump the rest of the 
-        if cache then
-            dump(cache,outputfile)
+        -- Dump the rest of the data
+        if next(datacache) ~= nil then
+            dump(datacache,targetcache,outputfile)
+            dumps[#dumps+1] = outputfile
         end
-        self.filetopos = filetopos
-        self.filetodump = filetodump
+
+        self.dumps = dumps
     end
 end
 
-function HtkCacheiterator:loadAudioSample(audiofilepath,start,stop,...)
-    -- print(self.filetopos[audiofilepath],audiofilepath,start,stop,self.filetopos[audiofilepath]+((start-1)/self:dim()))
-    local offset = self.filetopos[audiofilepath]+((start-1)/self:dim() ) 
-    local audiopath = self.filetodump[audiofilepath]
-    return _htktorch.loadsample(audiopath,offset)
+local function batchfeat(feats,targets,size)
+    return
+        feats:split(size,1),
+        targets:split(size,1)
 end
 
--- Samples are not extra handled, just use the wrapped classes
-function HtkCacheiterator:getSample(labels,  classranges, ...)
-    _htktorch = _htktorch or require 'torchhtk'
-    -- The stepsize
-    local framewindow = self:dim()
-    -- Use a local copy of input to make it thread safe
-    local inputs = torch.Tensor(labels:size(1),framewindow)
-    -- Buffer for audiosample
-    local sample = nil
-    -- Starting frame
-    local framestart = 1
-    local frameend = -1
-    -- Get the current offset for the data
-    for i=1,labels:size(1) do
-        framestart = (classranges[i] - 1) * ( framewindow ) + 1
-        frameend = framestart+framewindow - 1
-        sample = self:loadAudioSample(readfilelabel(labels[i]),framestart,frameend,...)
-        inputs[i]:copy(sample)
+function HtkCacheiterator:shuffle()
+    self.doshuffle = true
+end
+
+
+
+function HtkCacheiterator:sampleiterator(batchsize,epochsize,...)
+    batchsize = batchsize or 16
+    local dots = {...}
+    epochsize = epochsize or -1
+    epochsize = epochsize > 0 and epochsize or self:size()
+
+    local min = math.min
+
+    if not self.sampletofeatid and not self.sampletoclassrange then
+         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
     end
-    -- Ready for cleanup
-    sample = nil
-    return inputs
+
+    local wrap = coroutine.wrap
+    local yield = coroutine.yield
+
+    self:beforeIter(unpack(dots))
+    -- Buffers
+    local fname,size = nil,0
+    local input,target = torch.Tensor(),torch.LongTensor()
+
+    local function loaddataiter()
+        for k,fname in ipairs(self.dumps) do
+            if fname == nil then return end
+            local data = torch.load(fname)
+            -- apply shuffling ( if :shuffle() is called)
+            input = data.data
+            target = data.target
+            size = target:size(1)
+            if self.doshuffle then
+                local randperm = torch.LongTensor():randperm(size)
+                input = input:index(1,randperm)
+                target= target:index(1,randperm)
+            end
+
+            local inputbatches,targetbatches = batchfeat(input,target,batchsize)
+            yield(size,inputbatches,targetbatches)
+        end
+
+    end
+    local function iterator()
+        for size,inpbatches,tgtbatches in wrap(loaddataiter) do
+            local done = 1
+            for i=1,#inpbatches do
+                done = done + inpbatches[i]:size(1)
+                yield(done,size,inpbatches[i],tgtbatches[i])
+            end
+        end
+    end
+    return wrap(iterator)
+
 end
 
 
 function HtkCacheiterator:loadAudioUtterance(audiofilepath,wholeutt)
     error("Not implemented")
 end
-
-
 
 -- Number of utterances in the dataset
 -- Just wrap it around the moduel
