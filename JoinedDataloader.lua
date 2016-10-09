@@ -112,6 +112,8 @@ function JoinedDataloader:__init(...)
     self.threads = Threads(
             2,
             function()
+                audiodataload = audiodataload or require "audiodataload"
+                audio = audio or require 'audio'
             end,
             function(idx)
                 print("init threads"..idx)
@@ -167,6 +169,7 @@ function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
                 end
 
                 local inputbatches,targetbatches = batchfeat(input,target,batchsize)
+                collectgarbage()
                 return {size,inputbatches,targetbatches}
             end
             mthreads:addjob(
