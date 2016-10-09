@@ -45,6 +45,7 @@ end
 
 -- Utterance iterator callback
 function HtkDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
+    _htktorch = _htktorch or require 'torchhtk'
     if audiofilepath:dim() == 2 then
         assert(audiofilepath:size(1) == 1,"Only non batch mode for utterances supported!")
     end
