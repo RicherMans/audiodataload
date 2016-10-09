@@ -34,6 +34,10 @@ local function dump(cache,targets,outputfile)
     torch.save(outputfile,tensor)
 end
 
+local Threads = require 'threads'
+-- Threads share the given tensors
+Threads.serialization('threads.sharedserialize')
+
 function JoinedDataloader:__init(...)
     local args = initcheck(...)
     for k,v in pairs(args) do self[k] = v end
@@ -75,7 +79,6 @@ function JoinedDataloader:__init(...)
             dumps[#dumps+1] = outputfile
         end
 
-        self.dumps = dumps
     else
         -- Load from the preexisting cache
         self.dumps = {}
@@ -105,6 +108,19 @@ function JoinedDataloader:__init(...)
             return ntargets
         end
     end
+    local mainSeed=os.time()
+    self.threads = Threads(
+            2,
+            function()
+            end,
+            function(idx)
+                print("init threads"..idx)
+                torch.setnumthreads(1)
+                local seed = mainSeed + idx
+                torch.setdefaulttensortype('torch.FloatTensor')
+                torch.manualSeed(seed)
+            end
+    )
 end
 
 local function batchfeat(feats,targets,size)
@@ -116,8 +132,6 @@ end
 function JoinedDataloader:shuffle()
     self.doshuffle = true
 end
-
-
 
 function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
     batchsize = batchsize or 16
@@ -135,22 +149,35 @@ function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
     local fname,size = nil,0
     local input,target = torch.Tensor(),torch.LongTensor()
 
+    local mthreads = self.threads
+    local doshuffle = self.doshuffle
     local function loaddataiter()
         for k,fname in ipairs(self.dumps) do
             if fname == nil then return end
-            local data = torch.load(fname)
-            -- apply shuffling ( if :shuffle() is called)
-            input = data.data
-            target = data.target
-            size = target:size(1)
-            if self.doshuffle then
-                local randperm = torch.LongTensor():randperm(size)
-                input = input:index(1,randperm)
-                target= target:index(1,randperm)
-            end
+            local function loaddata(datafname)
+                local data = torch.load(datafname)
+                -- apply shuffling ( if :shuffle() is called)
+                input = data.data
+                target = data.target
+                size = target:size(1)
+                if doshuffle then
+                    local randperm = torch.LongTensor():randperm(size)
+                    input = input:index(1,randperm)
+                    target= target:index(1,randperm)
+                end
 
-            local inputbatches,targetbatches = batchfeat(input,target,batchsize)
-            yield(size,inputbatches,targetbatches)
+                local inputbatches,targetbatches = batchfeat(input,target,batchsize)
+                return {size,inputbatches,targetbatches}
+            end
+            mthreads:addjob(
+                function(fname)
+                    return loaddata(fname)
+                end,
+                function(tab)
+                    yield(unpack(tab))
+                end,
+                fname
+            )
         end
 
     end
