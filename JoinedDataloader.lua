@@ -133,8 +133,18 @@ function JoinedDataloader:sampleiterator(batchsize,epochsize,...)
     local fname,size = nil,0
     local input,target = torch.Tensor(),torch.LongTensor()
 
+    local ndumps = #self.dumps
+    local dumpids = torch.LongTensor()
+    -- Shuffle the order of dumps and the content of the dumps
+    if self.doshuffle then
+        dumpids = dumpids:randperm(ndumps)
+    else
+        dumpids = dumpids:range(1,ndumps)
+    end
+
     local function loaddataiter()
-        for k,fname in ipairs(self.dumps) do
+        for i=1,dumpids:size(1) do
+            local fname = self.dumps[dumpids[i]]
             if fname == nil then return end
             local function loaddata(datafname)
                 local data = torch.load(datafname)
