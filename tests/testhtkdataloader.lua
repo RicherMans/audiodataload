@@ -45,7 +45,9 @@ end
 function modeltester:testrandomize()
     local filepath = filelist
     local dataloader = audioload.HtkDataloader{path=filepath}
-
+    -- run the size estimation
+    local _ = dataloader:sampleiterator()
+    
     local tic = torch.tic()
     local labcount = torch.zeros(dataloader:nClasses()):zero()
     local dataset = torch.Tensor(dataloader:size(),dataloader:dim())
@@ -82,14 +84,14 @@ function modeltester:testrandomize()
                         tester:assert(lab[k] ==origtarget)
                         break
                     end
-                end    
+                end
             end
             local addone = torch.Tensor(lab:size(1)):fill(1)
             tmplabcount:indexAdd(1,lab:long(),addone)
             if dataset[{{s-bsize+1,s}}]:equal(inp) then
                 notrandomized = notrandomized + 1
             end
-            
+
             tester:assert(inp:size(1) == lab:size(1))
         end
         local sorted,_ = tmptargets:sort()
@@ -98,12 +100,11 @@ function modeltester:testrandomize()
         tester:eq(testunique,torch.ones(dataloader:size()))
         tester:eq(tmplabcount,labcount,"Labels are not the same in iteration "..i)
     end
-    
+
 end
 
 function modeltester:testsize()
     local dataloader = audioload.HtkDataloader{path=filelist}
-    local size = dataloader:size()
     -- Simulate 3 iterations over the dataset
     for i=1,3 do
         local numsamples = 0
@@ -112,6 +113,7 @@ function modeltester:testsize()
             numsamples = numsamples + i:size(1)
             collectgarbage()
         end
+        local size = dataloader:size()
         tester:assert(size == numsamples)
     end
 end
@@ -130,7 +132,7 @@ function modeltester:benchmark()
             for s,e,inp,lab in dataloader:sampleiterator(bs,nil) do
                 print(string.format("Sample [%i/%i]: Time for dataloading %.4f",s,e,timer:time().real))
                 timer:reset()
-            end 
+            end
             time = time + torch.toc(tic)
         end
         print("HTKdata: Bsize",bs,"time:",time)
