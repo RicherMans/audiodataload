@@ -13,6 +13,9 @@ end
 
 -- Returns the sample size of the dataset
 function BaseDataloader:size()
+    if not self.sampletofeatid and not self.sampletoclassrange then
+        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self:_getsamplelengths())
+    end
     return self._nsamples
 end
 
@@ -65,29 +68,40 @@ local basecheck = argcheck{
 function BaseDataloader:__init(...)
     local filename = basecheck(...)
 
-    local filelabels,targets,samplelengths = self:_readfilename(filename)
+    local filelabels,targets = self:_readfilename(filename)
 
     -- Set the filelabels and targets for the subclasses
     self.filelabels = filelabels
     self.targets = targets
-    self.samplelengths = samplelengths
 
     -- set usize()
     self._uttsize = self.filelabels:size(1)
-    -- set size()
-    self._nsamples = self.samplelengths:sum()
     -- Set nClasses()
     self._numbertargets = torch.max(self.targets,1):squeeze()
 
-    self.sampleids = torch.LongTensor():range(1,self:size())
     self.uttids = torch.LongTensor():range(1,self:usize())
 end
 
 
+function BaseDataloader:_getsamplelengths()
+    local samplelengths = torch.LongTensor(self:usize())
+    for i=1,self:usize() do
+        -- Get from any subclass the number of audio samples this file has
+        samplelengths[i] = self:getNumAudioSamples(readfilelabel(self.filelabels[i]))
+    end
+    self.samplelengths = samplelengths
+    return samplelengths
+end
+
+-- Called when sampleiterator is used to index the given files
 function BaseDataloader:sampletofeat(samplelengths)
     local runningindex = 0
     local numsamples = 0
-    local sampletofeatid,sampletoclassrange = torch.LongTensor(self:size()),torch.LongTensor(self:size())
+
+    -- set size()
+    self._nsamples = samplelengths:sum()
+
+    local sampletofeatid,sampletoclassrange = torch.LongTensor(self._nsamples),torch.LongTensor(self._nsamples)
     for i=1,samplelengths:size(1) do
         numsamples = samplelengths[i]
         -- -- Fill in the filelabel for each sample ( assume they are order equally)
@@ -96,6 +110,7 @@ function BaseDataloader:sampletofeat(samplelengths)
         sampletoclassrange[{{runningindex + 1, runningindex + numsamples}}]:range(1,numsamples)
         runningindex = runningindex + numsamples
     end
+
     return sampletofeatid,sampletoclassrange
 end
 
@@ -116,8 +131,8 @@ function BaseDataloader:_readfilename(filename)
     local target_data = targets:data()
     local targetcount = 0
 
-    local headerlengths = torch.LongTensor(nlines)
-    local headerlengths_data = headerlengths:data()
+    -- local headerlengths = torch.LongTensor(nlines)
+    -- local headerlengths_data = headerlengths:data()
 
     local linecount = 0
     local audiosamples = 0
@@ -131,16 +146,16 @@ function BaseDataloader:_readfilename(filename)
             targetcount = targetcount + 1
         end
         -- Get from any subclass the number of audio samples this file has
-        audiosamples = self:getNumAudioSamples(curline[1])
-        -- Save the current sample length
-        headerlengths_data[linecount] = audiosamples
+        -- audiosamples = self:getNumAudioSamples(curline[1])
+        -- -- Save the current sample length
+        -- headerlengths_data[linecount] = audiosamples
         -- Copy the current feature path into the featpath chartensor
         ffi.copy(filelabel_data,curline[1])
         -- Skip with the offset of the maxPathLength
         filelabel_data = filelabel_data + maxPathLength
         linecount = linecount + 1
     end
-    return filelabels,targets,headerlengths,overall_samples
+    return filelabels,targets,overall_samples
 end
 
 function BaseDataloader:getUtterances(uttids, ... )
@@ -152,11 +167,14 @@ function BaseDataloader:getUtterances(uttids, ... )
 end
 
 function BaseDataloader:shuffle()
-    self.sampleids = torch.LongTensor():randperm(self:size())
-    self.uttids = torch.LongTensor():randperm(self:usize())
+    self._doshuffle = true
+
 end
 
-function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
+function BaseDataloader:sampleiterator(batchsize, epochsize, randomize , ...)
+    if not self.sampletofeatid and not self.sampletoclassrange then
+        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self:_getsamplelengths())
+    end
     batchsize = batchsize or 16
     local dots = {...}
     epochsize = epochsize or -1
@@ -164,8 +182,12 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
 
     local min = math.min
 
-    if not self.sampletofeatid and not self.sampletoclassrange then
-         self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self.samplelengths)
+
+    local sampleids
+    if self._doshuffle or randomize  then
+        sampleids = torch.LongTensor():randperm(self:size())
+    else
+        sampleids = torch.LongTensor():range(1,self:size())
     end
 
     self:beforeIter(unpack(dots))
@@ -183,11 +205,11 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
             self:afterIter(unpack(dots))
             return
         end
-        -- epochsize +1 to let the self._cursample >epochsize trigger after that frame. 
+        -- epochsize +1 to let the self._cursample >epochsize trigger after that frame.
         bs = min(self._cursample+batchsize, epochsize + 1) - self._cursample
 
         stop = self._cursample + bs - 1
-        local cursampleids = self.sampleids[{{self._cursample,stop}}]
+        local cursampleids = sampleids[{{self._cursample,stop}}]
         -- the row from the file lists
         featids:index(self.sampletofeatid,1,cursampleids)
         -- The range of the current sample within the class
@@ -205,7 +227,7 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, ...)
 end
 
 -- Iterator which returns whole utterances batched
-function BaseDataloader:uttiterator(batchsize,epochsize, ... )
+function BaseDataloader:uttiterator(batchsize,epochsize, randomize, ... )
     batchsize = batchsize or 1
     local dots = {...}
     epochsize = epochsize or -1
@@ -215,6 +237,13 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
     local min = math.min
 
     local inputs, targets , bs, stop
+
+    local uttids
+    if self._doshuffle or randomize  then
+        uttids = torch.LongTensor():randperm(self:usize())
+    else
+        uttids = torch.LongTensor():range(1,self:usize())
+    end
 
     self:beforeIter(unpack(dots))
     -- build iterator
@@ -229,7 +258,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, ... )
 
         stop = self._curutterance + bs - 1
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(self.uttids[{{self._curutterance,stop}}], unpack(dots))}
+        local batch = {self:getUtterances(uttids[{{self._curutterance,stop}}], unpack(dots))}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
         self._curutterance = self._curutterance + bs

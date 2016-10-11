@@ -5,7 +5,7 @@ require 'xlua'
 
 -- Add to cpath
 local info = debug.getinfo(1,'S')
-local script_path=info.source:sub(2):gsub("testhtkcacheiterator",'?')
+local script_path=info.source:sub(2):gsub("testjoinediterator",'?')
 package.path = package.path .. ";".. script_path .. ";../".. script_path..  ";../../" ..script_path
 local modeltester = torch.TestSuite()
 -- Inits the dataloaders
@@ -28,7 +28,7 @@ function modeltester:init()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
     local fp = "myfile"
-    audioload.HtkCacheiterator(dataloader,fp)
+    audioload.JoinedDataloader(dataloader,fp)
     paths.rmall(fp,"yes")
 end
 -- function modeltester:randomizedtest()
@@ -72,7 +72,7 @@ function modeltester:iter()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
     local fp = "myfile1"
-    local cacheiter = audioload.HtkCacheiterator(dataloader,fp,3)
+    local cacheiter = audioload.JoinedDataloader(dataloader,fp,3)
 
     local tic = torch.tic()
     for s,e,inp,lab in cacheiter:sampleiterator(128) do
@@ -92,7 +92,7 @@ function modeltester:benchmark()
     local filepath = htkfilelist
     local dataloader = audioload.HtkDataloader(filepath)
     local fp = "myfile3"
-    local cacheiter = audioload.HtkCacheiterator(dataloader,fp,10000)
+    local cacheiter = audioload.JoinedDataloader(dataloader,fp,10000)
 
     bsizes={10,128,256}
     for bs in pairs(bsizes) do

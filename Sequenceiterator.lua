@@ -48,7 +48,8 @@ function Sequenceiterator:__init(...)
     for k,v in pairs(self.wrappedmodule) do
         self[k]=v
     end
-
+    -- Get the samplelengths
+    self.wrappedmodule:size()
     -- Overwrite seqlength
     if self.usemaxseqlength then
         local maxseqlen = self.wrappedmodule.samplelengths:max()
@@ -164,6 +165,9 @@ function Sequenceiterator:sampletofeat(samplelengths)
     return sampletofeatid, sampletoclassrange
 end
 
+function Sequenceiterator:getNumAudioSamples(filename)
+    return self.wrappedmodule:getNumAudioSamples(filename)
+end
 
 -- Number of utterances in the dataset
 -- Just wrap it around the moduel

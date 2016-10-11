@@ -60,6 +60,10 @@ function Hdf5iterator:__init(...)
 
 end
 
+function Hdf5iterator:getNumAudioSamples(fname)
+    return self.module:getNumAudioSamples(fname)
+end
+
 -- Number of utterances in the dataset
 -- Just wrap it around the moduel
 function Hdf5iterator:usize()

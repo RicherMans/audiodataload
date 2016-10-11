@@ -59,7 +59,7 @@ end
 
 
 -- Loads the given audiofilepath and subs the given tensor to be in range start,stop. Zerotensor is returned if the stop argument is larger than the audiofile
-function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)    
+function WaveDataloader:loadAudioSample(audiofilepath,start,stop,...)
     local audiobuf = loadwave(audiofilepath)
     -- -- Return just a vector of zeros. This only happenes when called by Sequenceiterator, otherwise this case is nonexistent
     -- if stop > audiobuf:size(1) then

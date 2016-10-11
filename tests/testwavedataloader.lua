@@ -66,6 +66,7 @@ function modeltester:testRandomize()
     valuetolab={}
     numvalues = 0
     local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+    local _ = dataloader:sampleiterator()
     local sampletoclass = torch.Tensor(dataloader:size())
     for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
         valuetolab[inp[1][1]] = lab[1]
@@ -75,13 +76,13 @@ function modeltester:testRandomize()
         local addone = torch.Tensor(lab:size(1)):fill(1)
         classsizes:indexAdd(1,lab:long(),addone)
     end
-    -- Check if we only have unique values 
+    -- Check if we only have unique values
     local uniquevalues = 0
     for k,v in pairs(valuetolab) do
         uniquevalues = uniquevalues + 1
     end
 
-    if uniquevalues ~= numvalues then 
+    if uniquevalues ~= numvalues then
         print("Error, values are not unique. Just a warning, nothing special.  ".. uniquevalues .."/"..numvalues)
     end
     tester:assert(classsizes:sum()==dataloader:size())
