@@ -57,6 +57,8 @@ function JoinedDataloader:__init(...)
         local outputfile
         local datacache = {}
         local targetcache = {}
+        -- Shuffle the utterances
+        self.module:shuffle()
         for done,finished,input,target,path in self.module:uttiterator() do
             outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
             path = readfilelabel(path)
