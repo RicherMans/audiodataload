@@ -43,6 +43,26 @@ function shallowcopy(orig)
 end
 
 
+
+function modeltester:utterance()
+    local filepath = wavefilelist
+    local dataloader = audioload.WaveDataloader(filepath,100)
+    local asyncdata = audioload.Asynciterator(dataloader,2)
+
+    t = torch.tic()
+    for _ in dataloader:uttiterator() do
+
+    end
+    print(torch.toc(t))
+    collectgarbage()
+    local t = torch.tic()
+    for k,v,a,b in asyncdata:uttiterator() do
+
+    end
+    print(torch.toc(t))
+
+end
+
 function modeltester:init()
     local filepath = wavefilelist
     local dataloader = audioload.WaveDataloader(filepath,100)
@@ -254,5 +274,6 @@ function modeltester:randomizedtest()
     end
 end
 
+
 tester:add(modeltester)
-tester:run()
+tester:run("utterance")
