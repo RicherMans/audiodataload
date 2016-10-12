@@ -155,7 +155,7 @@ function BaseDataloader:_readfilename(filename)
         filelabel_data = filelabel_data + maxPathLength
         linecount = linecount + 1
     end
-    return filelabels,targets,overall_samples
+    return filelabels,targets
 end
 
 function BaseDataloader:getUtterances(uttids, ... )

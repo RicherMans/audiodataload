@@ -49,8 +49,8 @@ function Asynciterator:__init(...)
 
     local modstr = torch.serialize(self.module)
 
-    self.sampleids = self.module.sampleids
     self.uttids = self.module.uttids
+    self.filelabels = self.module.filelabels
 
     local mainSeed = os.time()
      -- build a Threads pool, or use the last one initilized
@@ -80,17 +80,22 @@ function Asynciterator:__init(...)
 end
 
 
+function Asynciterator:getNumAudioSamples(fname)
+    return self.module:getNumAudioSamples(fname)
+end
 
 
 
-function Asynciterator:sampleiterator(batchsize, epochsize, ...)
+function Asynciterator:sampleiterator(batchsize, epochsize, randomize, ...)
     batchsize = batchsize or 16
     local dots = {...}
     epochsize = epochsize or -1
     epochsize = epochsize > 0 and epochsize or self:size()
 
 
-    self.sampletofeatid, self.sampletoclassrange = self.module:sampletofeat(self.module.samplelengths)
+    if not self.sampletofeatid and not self.sampletoclassrange then
+        self.sampletofeatid,self.sampletoclassrange = self:sampletofeat(self:_getsamplelengths())
+    end
 
     local min = math.min
 
@@ -108,7 +113,12 @@ function Asynciterator:sampleiterator(batchsize, epochsize, ...)
     local itersize = nil
     -- Buffer variables for the threads
     local mthreads = self.threads
-    local sampleids = self.sampleids
+    local sampleids
+    if self._doshuffle or randomize  then
+        sampleids = torch.LongTensor():randperm(self:size())
+    else
+        sampleids = torch.LongTensor():range(1,self:size())
+    end
     local sampletofeatid = self.sampletofeatid
     local sampletoclassrange = self.sampletoclassrange
     local filelabels = self.module.filelabels
