@@ -10,6 +10,7 @@ local modeltester = torch.TestSuite()
 -- Inits the dataloaders
 local audioload = paths.dofile('../init.lua')
 
+local profi = require 'ProFi'
 local tester = torch.Tester()
 
 local filelist = arg[1]
@@ -47,7 +48,7 @@ function modeltester:testrandomize()
     local dataloader = audioload.HtkDataloader{path=filepath}
     -- run the size estimation
     local _ = dataloader:sampleiterator()
-    
+
     local tic = torch.tic()
     local labcount = torch.zeros(dataloader:nClasses()):zero()
     local dataset = torch.Tensor(dataloader:size(),dataloader:dim())
@@ -118,18 +119,24 @@ function modeltester:testsize()
     end
 end
 
-local timer = torch.Timer()
 function modeltester:benchmark()
+    local timer = torch.Timer()
     local dataloader = audioload.HtkDataloader{path=filelist}
     local bsizes = {64,128,256}
     local time = 0
+    profi:start()
+    for s,e,inp,lab in dataloader:uttiterator() do
+
+    end
+    profi:stop()
+    profi:writeReport("Report_htkuttiter.txt")
     print(" ")
     for k,bs in pairs(bsizes) do
         for i=1,3 do
             dataloader:shuffle()
             collectgarbage()
             tic = torch.tic()
-            for s,e,inp,lab in dataloader:sampleiterator(bs,nil) do
+            for s,e,inp,lab in dataloader:sampleiterator(bs) do
                 print(string.format("Sample [%i/%i]: Time for dataloading %.4f",s,e,timer:time().real))
                 timer:reset()
             end
