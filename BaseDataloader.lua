@@ -159,11 +159,7 @@ function BaseDataloader:_readfilename(filename)
 end
 
 function BaseDataloader:getUtterances(uttids, ... )
-    local labels = self.filelabels:index(1,uttids)
 
-    local target = self.targets:index(1,uttids)
-
-    return self:loadAudioUtterance(labels,true),target:view(target:nElement()),labels
 end
 
 function BaseDataloader:shuffle()
@@ -236,7 +232,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, randomize, ... )
 
     local min = math.min
 
-    local inputs, targets , bs, stop
+    local bs, stop
 
     local uttids
     if self._doshuffle or randomize  then
@@ -246,6 +242,10 @@ function BaseDataloader:uttiterator(batchsize,epochsize, randomize, ... )
     end
 
     self:beforeIter(unpack(dots))
+    local uttsubset, labels, target = torch.LongTensor(),torch.CharTensor(),torch.LongTensor()
+    local batch
+
+
     -- build iterator
     return function()
         if self._curutterance > epochsize then
@@ -257,8 +257,12 @@ function BaseDataloader:uttiterator(batchsize,epochsize, randomize, ... )
         bs = min(self._curutterance+batchsize, epochsize + 1 ) - self._curutterance
 
         stop = self._curutterance + bs - 1
+        uttsubset = uttids[{{self._curutterance,stop}}]
+        labels:index(self.filelabels,1,uttsubset)
+        target:index(self.targets,1,uttsubset)
+
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        local batch = {self:getUtterances(uttids[{{self._curutterance,stop}}], unpack(dots))}
+        batch =  { self:loadAudioUtterance(labels,true),target:view(target:nElement()),labels}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
         self._curutterance = self._curutterance + bs
