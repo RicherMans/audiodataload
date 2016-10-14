@@ -28,7 +28,7 @@ function modeltester:testUtteranceSeq()
     local filepath = filelist
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
 
-    local it = dataloader:uttiterator(1)
+    local it = dataloader:uttiterator(1,nil,true)
     local tic = torch.tic()
     for i,k,v,t in it do
         tester:assert(i ~= nil)

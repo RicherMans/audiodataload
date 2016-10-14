@@ -51,6 +51,7 @@ function Asynciterator:__init(...)
 
     self.uttids = self.module.uttids
     self.filelabels = self.module.filelabels
+    self.targets = self.module.targets
 
     local mainSeed = os.time()
      -- build a Threads pool, or use the last one initilized
@@ -187,6 +188,75 @@ function Asynciterator:reset()
     -- while not self.recvqueue:empty() do
     --     self:asyncGet()
     -- end
+end
+
+function Asynciterator:uttiterator(batchsize,epochsize, randomize)
+    batchsize = batchsize or 1
+    epochsize = epochsize or -1
+    epochsize = epochsize > 0 and epochsize or self:usize()
+
+    local min = math.min
+    local uttids
+    if self._doshuffle or randomize  then
+        uttids = torch.LongTensor():randperm(self:usize())
+    else
+        uttids = torch.LongTensor():range(1,self:usize())
+    end
+
+    self:beforeIter(nil)
+
+    local mthreads = self.threads
+    local mfilelabels = self.filelabels
+    local mtargets = self.targets
+    local start = 1
+    local retinput,rettarget,itersize
+
+    local function runthread()
+
+        while start <= epochsize and mthreads:acceptsjob() do
+            bs = min(start+batchsize, epochsize + 1 ) - start
+            stop = start + bs - 1
+            local uttsubset = uttids[{{start,stop}}]
+            local labels = mfilelabels:index(1,uttsubset)
+            local targets = mtargets:index(1,uttsubset)
+            mthreads:addjob(
+                function (mlabel,mtarget)
+                    local res = {}
+
+                    res.input = _t.module["loadAudioUtterance"](_t.module,mlabel,true)
+                    res.target = mtarget
+                    res.size = mtarget:size(1)
+                    collectgarbage()
+                    return res
+                end,
+                function(tab)
+                    retinput = tab.input
+                    rettarget = tab.target:view(tab.target:nElement())
+                    itersize = tab.size
+                end,
+                labels,targets
+            )
+            start = start + batchsize
+        end
+    end
+
+    local finishedcount = 0
+    local function iterate()
+        runthread()
+        runthread()
+        if not mthreads:hasjob() then
+            return nil
+        end
+        mthreads:dojob()
+        if mthreads:haserror() then
+            mthreads:synchronize()
+        end
+        runthread()
+
+        finishedcount = finishedcount + itersize
+        return finishedcount, epochsize, retinput,restarget
+    end
+    return iterate
 end
 
 function Asynciterator:nClasses()

@@ -79,7 +79,6 @@ function BaseDataloader:__init(...)
     -- Set nClasses()
     self._numbertargets = torch.max(self.targets,1):squeeze()
 
-    self.uttids = torch.LongTensor():range(1,self:usize())
 end
 
 

@@ -55,6 +55,7 @@ function JoinedDataloader:__init(...)
         local runningid = 1
         local outputfileid = 1
         local outputfile
+        local datacounter = 1
         local datacache = {}
         local targetcache = {}
         -- Shuffle the utterances
@@ -63,17 +64,17 @@ function JoinedDataloader:__init(...)
             outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
             path = readfilelabel(path)
             runningid = runningid + input:size(1)
-            datacache[#datacache+1] = input
+            datacache[datacounter] = input
             -- Adjust the sizes of the input and the target, since target is only a 1 dim tensor
-            targetcache[#targetcache+ 1 ] = target:expand(input:size(1))
+            targetcache[datacounter] = target:expand(input:size(1))
+            datacounter = datacounter + 1
             if runningid > size then
                 dumps[#dumps+1] = outputfile
                 outputfileid = outputfileid + 1
                 runningid = 1
                 dump(datacache,targetcache,outputfile)
-                targetcache = nil
+                datacounter = 0
                 targetcache = {}
-                datacache=nil
                 datacache={}
             end
         end
