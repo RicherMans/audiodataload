@@ -61,15 +61,16 @@ function JoinedDataloader:__init(...)
         -- Shuffle the utterances
         self.module:shuffle()
         for done,finished,input,target,path in self.module:uttiterator() do
-            outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
             path = readfilelabel(path)
             runningid = runningid + input:size(1)
-            datacache[datacounter] = input
+            datacache[datacounter] = input:clone()
             -- Adjust the sizes of the input and the target, since target is only a 1 dim tensor
-            targetcache[datacounter] = target:expand(input:size(1))
+            targetcache[datacounter] = target:expand(input:size(1)):clone()
             datacounter = datacounter + 1
             if runningid > size then
+                outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
                 dumps[#dumps+1] = outputfile
+                print(outputfile,targetcache[1],targetcache[2],targetcache[#targetcache])
                 outputfileid = outputfileid + 1
                 runningid = 1
                 dump(datacache,targetcache,outputfile)
@@ -80,6 +81,7 @@ function JoinedDataloader:__init(...)
         end
         -- Dump the rest of the data
         if next(datacache) ~= nil then
+            outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
             dump(datacache,targetcache,outputfile)
             dumps[#dumps+1] = outputfile
         end
