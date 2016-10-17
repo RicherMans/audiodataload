@@ -126,7 +126,6 @@ function modeltester:benchmark()
     local time = 0
     profi:start()
     for s,e,inp,lab in dataloader:uttiterator() do
-
     end
     profi:stop()
     profi:writeReport("Report_htkuttiter.txt")

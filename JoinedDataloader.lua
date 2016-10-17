@@ -59,22 +59,20 @@ function JoinedDataloader:__init(...)
         local datacache = {}
         local targetcache = {}
         -- Shuffle the utterances
-        self.module:shuffle()
-        for done,finished,input,target,path in self.module:uttiterator() do
+        for done,finished,input,target,path in self.module:uttiterator(nil,nil,true) do
             path = readfilelabel(path)
             runningid = runningid + input:size(1)
             datacache[datacounter] = input:clone()
             -- Adjust the sizes of the input and the target, since target is only a 1 dim tensor
-            targetcache[datacounter] = target:expand(input:size(1)):clone()
+            targetcache[datacounter] = target:expand(input:size(1),target:size(2)):clone()
             datacounter = datacounter + 1
             if runningid > size then
                 outputfile=paths.concat(self.dirpath,"dump_part_"..outputfileid..".th")
                 dumps[#dumps+1] = outputfile
-                print(outputfile,targetcache[1],targetcache[2],targetcache[#targetcache])
                 outputfileid = outputfileid + 1
                 runningid = 1
                 dump(datacache,targetcache,outputfile)
-                datacounter = 0
+                datacounter = 1
                 targetcache = {}
                 datacache={}
             end
@@ -93,7 +91,7 @@ function JoinedDataloader:__init(...)
         self.module = {}
         local samplesize,dim = 0,0,0
         local sample,target
-        local ntargets = -1
+        local ntargets
         local datapiece
         for file in io.lines(self.loadfile) do
             self.dumps[#self.dumps + 1] = file
@@ -102,7 +100,8 @@ function JoinedDataloader:__init(...)
             target = datapiece.target
             samplesize = samplesize + sample:size(1)
             dim = sample:size(2)
-            ntargets = math.max(ntargets,target:max())
+            ntargets = torch.Tensor(target:size()):fill(-1):cmax(target) or ntargets:cmax(target)
+            print(ntargets)
         end
         self.module.dim = function()
             return dim

@@ -150,7 +150,7 @@ function Asynciterator:sampleiterator(batchsize, epochsize, randomize, ...)
                 end,
                 function(tab)
                     input = tab.input
-                    restarget = tab.target:view(tab.target:nElement())
+                    restarget = tab.target:squeeze()
                     itersize = tab.size
                 end,
                 labels,
@@ -231,7 +231,7 @@ function Asynciterator:uttiterator(batchsize,epochsize, randomize)
                 end,
                 function(tab)
                     retinput = tab.input
-                    rettarget = tab.target:view(tab.target:nElement())
+                    rettarget = tab.target:squeeze()
                     itersize = tab.size
                 end,
                 labels,targets

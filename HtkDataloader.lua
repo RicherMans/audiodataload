@@ -17,6 +17,7 @@ local max = math.max
 
 -- used by basedataloader to estimate _nsamples
 function HtkDataloader:getNumAudioSamples(filename)
+    _htktorch = _htktorch or require 'torchhtk'
     return _htktorch.loadheader(filename).nsamples
 end
 

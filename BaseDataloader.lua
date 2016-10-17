@@ -77,7 +77,7 @@ function BaseDataloader:__init(...)
     -- set usize()
     self._uttsize = self.filelabels:size(1)
     -- Set nClasses()
-    self._numbertargets = torch.max(self.targets,1):squeeze()
+    self._numbertargets = torch.max(self.targets,1)
 
 end
 
@@ -214,7 +214,8 @@ function BaseDataloader:sampleiterator(batchsize, epochsize, randomize , ...)
         labels:index(self.filelabels,1,featids)
         target:index(self.targets,1,featids)
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        batch = {self:getSample(labels, classranges, unpack(dots)),target:view(target:nElement())}
+        batch = {self:getSample(labels, classranges, unpack(dots)),target:squeeze()}
+
 
         self._cursample = self._cursample + bs
         return self._cursample - 1,epochsize, unpack(batch)
@@ -234,6 +235,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, randomize, ... )
     local bs, stop
 
     local uttids
+
     if self._doshuffle or randomize  then
         uttids = torch.LongTensor():randperm(self:usize())
     else
@@ -261,7 +263,7 @@ function BaseDataloader:uttiterator(batchsize,epochsize, randomize, ... )
         target:index(self.targets,1,uttsubset)
 
         -- Sequence length is via default not used, thus returns an iterator of size Batch X DIM
-        batch =  { self:loadAudioUtterance(labels,true),target:view(target:nElement()),labels}
+        batch =  { self:loadAudioUtterance(labels,true),target,labels}
         -- -- allows reuse of inputs and targets buffers for next iteration
         -- inputs, targets = batch[1], batch[2]
         self._curutterance = self._curutterance + bs

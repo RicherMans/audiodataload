@@ -37,11 +37,11 @@ luarocks install audiodataload
 Since the data needs to be passed in a comprehensive file, the fileformat consists of datapath and the target number. Currently the targets need to be preenumerated to be in range `1..n`, otherwise an error will be thrown. For example:
 
 ```
-/path/to/speaker1_utterance1.wav 1
-/path/to/speaker1_utterance2.wav 1
-/path/to/speaker1_utterance3.wav 1
-/path/to/speaker2_utterance1.wav 2
-/path/to/speaker3_utterance1.wav 3
+/path/to/speaker1_utterance1.wav 1 ... (targetN)
+/path/to/speaker1_utterance2.wav 1 ... (targetN)
+/path/to/speaker1_utterance3.wav 1 ... (targetN)
+/path/to/speaker2_utterance1.wav 2 ... (targetN)
+/path/to/speaker3_utterance1.wav 3 ... (targetN)
 ```
 
 
@@ -63,9 +63,9 @@ Returns the number of utterances in the current dataset
 
 Returns the datadimension as a number.
 
-### [n] nClasses()
+### [Tensor] nClasses()
 
-Returns the number of target classes
+Returns the number of target classes as a Tensor. In case of multiple targets, the tensor has size (1,nClasses), otherwise a plain (1,1) tensor.
 
 
 <a name='adl.basedataloader.uttiterator'></a>
