@@ -231,7 +231,7 @@ function Asynciterator:uttiterator(batchsize,epochsize, randomize)
                 end,
                 function(tab)
                     retinput = tab.input
-                    rettarget = tab.target:squeeze()
+                    rettarget = tab.target
                     itersize = tab.size
                 end,
                 labels,targets
