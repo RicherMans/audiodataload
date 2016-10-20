@@ -100,7 +100,6 @@ function JoinedDataloader:__init(...)
             target = datapiece.target
             samplesize = samplesize + sample:size(1)
             dim = sample:size(2)
-            local  a = torch.LongTensor(target:size():fill(-1))
             ntargets = ntargets or torch.LongTensor(target:size()):fill(-1)
             ntargets:cmax(target:max(1)[1])
         end

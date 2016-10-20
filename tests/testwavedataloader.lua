@@ -42,7 +42,7 @@ end
 
 function modeltester:testUtteranceNoSeq()
     local filepath = filelist
-    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
+    local dataloader = audioload.WaveDataloader{path=filepath,framesize=100,shift=2}
 
     local tic = torch.tic()
     ProFi:start()
@@ -65,7 +65,7 @@ function modeltester:testRandomize()
     local dataloader = audioload.WaveDataloader{path=filepath,framesize=100}
     valuetolab={}
     numvalues = 0
-    local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+    local classsizes= torch.Tensor(dataloader:nClasses():squeeze()):zero()
     local _ = dataloader:sampleiterator()
     local sampletoclass = torch.Tensor(dataloader:size())
     for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
@@ -92,7 +92,7 @@ function modeltester:testRandomize()
     -- Emulate some 5 iterations over the data
     for i=1,5 do
         local randomized = 0
-        local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
+        local tmpclasssizes = torch.Tensor(dataloader:nClasses():squeeze()):zero()
         dataloader:shuffle()
         for s,e,inp,lab in dataloader:sampleiterator(1,nil) do
             lab = torch.Tensor(1):fill(lab)
@@ -111,7 +111,7 @@ end
 function modeltester:testnonrandomizedsamples()
     local filepath = filelist
     local dataloader = audioload.WaveDataloader(filepath,100)
-    local classsizes= torch.Tensor(dataloader:nClasses()):zero()
+    local classsizes= torch.Tensor(dataloader:nClasses():squeeze()):zero()
 
 
     local batchsize = 128
@@ -121,7 +121,7 @@ function modeltester:testnonrandomizedsamples()
     end
     tester:assert(classsizes:sum()==dataloader:size())
     for i=1,3 do
-        local tmpclasssizes = torch.Tensor(dataloader:nClasses()):zero()
+        local tmpclasssizes = torch.Tensor(dataloader:nClasses():squeeze()):zero()
         for s,e,k,v in dataloader:sampleiterator(batchsize) do
             local addone = torch.Tensor(v:size(1)):fill(1)
             tmpclasssizes:indexAdd(1,v:long(),addone)

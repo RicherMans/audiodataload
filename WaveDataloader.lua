@@ -44,7 +44,9 @@ end
 
 function WaveDataloader:getNumAudioSamples(filename)
     local feat = loadwave(filename)
-    return max(1,calcnumframes(feat:size(1),self:dim(),self.shift))
+    local nframes =  calcnumframes(feat:size(1),self:dim(),self.shift)
+    if (nframes < 1) then nframes = 1 end
+    return nframes
 end
 
 function WaveDataloader:__init(...)
@@ -80,17 +82,28 @@ function WaveDataloader:loadAudioUtterance(audiofilepath,wholeutt,...)
 
     wholeutt = wholeutt or ( wholeutt ~= nil or false )
     local audioloaded = loadwave(audiofilepath)
-    local origaudiosize = audioloaded:size(1)
     -- The maximum size of fitting utterances so that no sequence will be mixed with nonzeros and zeros
-    local modaudiosize = floor(origaudiosize/self:dim()) * self:dim()
+    local modaudiosize = floor(audioloaded:size(1)/self:dim()) * self:dim()
     -- We trim the output if seqlen is small
     local targetsize = self:dim()
+    local numtsteps = calcnumframes(modaudiosize,self:dim(),self.shift)
+    local outputsize = numtsteps*self:dim()
     -- return the whole utterance, for single batch cases
-    if wholeutt then targetsize = modaudiosize end
-    local buf = torch.zeros(targetsize)
-    buf:sub(1,targetsize):copy(audioloaded:sub(1,targetsize))
+    if wholeutt then targetsize = outputsize end
+    
+    local buf = torch.zeros(outputsize)
+    local startbuf,startaud = 1,1
+    local stopbuf,stopaud = self:dim(),self:dim()
+
+    for i=1,numtsteps do
+        buf:sub(startbuf,stopbuf):copy(audioloaded:sub(startaud,stopaud))
+        startbuf = startbuf + self:dim() 
+        stopbuf = stopbuf + self:dim()
+        startaud = i * self.shift + 1
+        stopaud = startaud + self:dim() - 1
+    end
     -- end
-    return buf:view(targetsize/self:dim(),self:dim())
+    return buf:view(outputsize/self:dim(),self:dim())
 end
 
 -- Iterator callback function
